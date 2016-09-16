@@ -10,7 +10,7 @@ from sqlalchemy import Table,Column,Integer,Float,String,Sequence
 
 # a list; one entry per table.
 # every entry is a dict(), with the 'name' of the table and the definition of 'columns'
-T = [{'name':'PIR',
+schema = [{'name':'PIR',
       'columns':[('ir_mV',Float),('t_case_ohm',Float),('t_dome_ohm',Float)]},
      {'name':'PSP',
       'columns':[('psp_mV',Float)]},
@@ -39,7 +39,7 @@ if '__main__' == __name__:
     # what's this mess?
     # http://docs.sqlalchemy.org/en/latest/core/metadata.html
     tables = []
-    for t in T:
+    for t in schema:
         d = [t['name'],metadata]
         d.append(Column('id',Integer,Sequence('sample_id_seq'),primary_key=True))
         d.append(Column('ts',Float))

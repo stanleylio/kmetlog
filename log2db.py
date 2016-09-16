@@ -12,10 +12,10 @@ from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
 from sqlalchemy.orm import sessionmaker
-from db_configuration import T
+import db_configuration
 
 
-tags = [t['name'] for t in T]
+tags = [t['name'] for t in db_configuration.schema]
 print(tags)
 
 

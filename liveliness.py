@@ -43,12 +43,19 @@ def taskDisp():
         print('{} ({:.1f}s ago)'.format(tag,dt2ts(datetime.utcnow()) - D[tag]['ts']))
         for col in D[tag].keys():
             print('\t{}={}'.format(col,D[tag][col]))
-    
-    
+
+def taskLiveliness():
+    global D
+    for k in D.keys():
+        if dt2ts(datetime.utcnow()) - D[k]['ts'] > 10*60:
+            del D[k]
+
 lcRecv = LoopingCall(taskRecv)
 lcDisp = LoopingCall(taskDisp)
+lcLiveliness = LoopingCall(taskLiveliness)
 lcRecv.start(0.1)
 lcDisp.start(1)
+lcLiveliness.start(60)
 
 reactor.run()
 

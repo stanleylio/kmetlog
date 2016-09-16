@@ -5,28 +5,28 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
-import sys,zmq,logging
+import sys,zmq,logging,json
 sys.path.append(r'../node')
 from helper import *
 from random import random
-from db_configuration import schema
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime
-import json
+from adam4018 import ADAM4018
 
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+daq = ADAM4018('01','/dev/ttyUSB0',9600)
+assert daq.CheckModuleName()
+assert daq.SetInputRange(50e-3)
 
 
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind('tcp://*:9002')
 
-
-# !!
-for t in schema:
-    print(t['name'],list(zip(*t['columns']))[0])
 
 
 def send(d):
@@ -37,7 +37,25 @@ def send(d):
     socket.send_string(s)
 
 
-def taskPIR():
+def taskLight():
+    r = daq.ReadAll()
+    
+    par = {'tag':'PAR',
+         'ts':dt2ts(datetime.utcnow()),
+         'par_V':r[0]*2}
+    psp = {'tag':'PSP',
+         'ts':dt2ts(datetime.utcnow()),
+         'psp_mV':r[1]/1e-3}
+    pir = {'tag':'PIR',
+         'ts':dt2ts(datetime.utcnow()),
+         'ir_mV':r[2]/1e-3,
+         't_case_ohm':-r[6],    # need to do the math to get R from V
+         't_dome_ohm':-r[7]}
+    send(par)
+    send(psp)
+    send(pir)
+
+'''def taskPIR():
     d = {'tag':'PIR',
          'ts':dt2ts(datetime.utcnow()),
          'ir_mV':50*random(),
@@ -102,10 +120,16 @@ LC = [LoopingCall(taskPIR),
       LoopingCall(taskStarboardWind),
       LoopingCall(taskUltrasonicWind),
       LoopingCall(taskOpticalRain),
-      LoopingCall(taskBME280Sample)]
+      LoopingCall(taskBME280Sample)
+      ]
 for lc in LC:
-    lc.start(20*random()/10. + 1,now=False)
+    lc.start(1,now=False)'''
+
+lc = LoopingCall(taskLight)
+lc.start(1,now=False)
+
 
 reactor.run()
-print('done')
+del daq
+logging.info('terminated')
 
