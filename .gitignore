@@ -1,0 +1,8 @@
+*.py[cod]
+*.csv
+*.old
+*.obsolete
+*.log
+
+log/
+data/
