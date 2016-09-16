@@ -36,8 +36,8 @@ logger = logging.getLogger(__name__)
 #logger = logging.getLogger('met_log_db')
 logger.setLevel(logging.DEBUG)
 #fh = logging.FileHandler(join(log_path,'kmet_db.log'))
-fh = logging.handlers.RotatingFileHandler(join(log_path,'kmet_db.txt'),
-                                          maxBytes=1e7,
+fh = logging.handlers.RotatingFileHandler(join(log_path,'log2db.log'),
+                                          maxBytes=1e8,
                                           backupCount=10)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
