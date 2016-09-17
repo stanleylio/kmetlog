@@ -5,7 +5,8 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
-import sys,zmq,logging,json
+import sys,zmq,logging,json,time,traceback
+import logging.handlers
 sys.path.append(r'../node')
 from helper import *
 from random import random
@@ -13,69 +14,137 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime
 from adam4018 import ADAM4018
+from os import makedirs
+from os.path import exists,join
+from r2t import r2t
 
 
-logging.basicConfig(level=logging.DEBUG)
+log_path = 'log'
+if not exists(log_path):
+    makedirs(log_path)
 
 
-daq = ADAM4018('01','/dev/ttyUSB0',9600)
-assert daq.CheckModuleName()
-assert daq.SetInputRange(50e-3)
+#logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+fh = logging.handlers.RotatingFileHandler(join(log_path,'read_sensors.log'),
+                                          maxBytes=1e8,
+                                          backupCount=10)
+fh.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+logging.Formatter.converter = time.gmtime
+formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 
+def initdaqhv():
+    daq = ADAM4018('01','/dev/ttyUSB0',9600)
+    if not daq.CheckModuleName():
+        logger.critical('Cannot reach the DAQ (HV) at 01.')
+        return None
+    if not any([daq.SetInputRange(2.5) for tmp in range(3)]):
+        logger.critical('Unable to set DAQ (HV) input range.')
+        return None
+    return daq
+
+def initdaqlv():
+    daq = ADAM4018('02','/dev/ttyUSB0',9600)
+    if not daq.CheckModuleName():
+        logger.critical('Cannot reach the DAQ (LV) at 01.')
+        return None
+    if not any([daq.SetInputRange(50e-3) for tmp in range(3)]):
+        logger.critical('Unable to set DAQ (LV) input range.')
+        return None
+    return daq
+
+
+zmq_port = 'tcp://*:9002'
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
-socket.bind('tcp://*:9002')
-
+socket.bind(zmq_port)
+logger.info('Broadcasting at {}'.format(zmq_port))
 
 
 def send(d):
     topic = d['tag']
     s = json.dumps(d,separators=(',',':'))
     s = 'kmet1_{topic},{msg}'.format(msg=s,topic=topic)
-    logging.debug(s)
-    socket.send_string(s)
+    logger.debug(s)
+    try:
+        socket.send_string(s)
+    except Exception as e:
+        logger.error(e)
+        traceback.print_exc()
 
 
-def taskLight():
-    r = daq.ReadAll()
+daqhv = None
+daqlv = None
+
+def taskDAQ():
+    global daqhv
+    global daqlv
     
-    par = {'tag':'PAR',
-         'ts':dt2ts(datetime.utcnow()),
-         'par_V':r[0]*2}
-    psp = {'tag':'PSP',
-         'ts':dt2ts(datetime.utcnow()),
-         'psp_mV':r[1]/1e-3}
-    pir = {'tag':'PIR',
-         'ts':dt2ts(datetime.utcnow()),
-         'ir_mV':r[2]/1e-3,
-         't_case_ohm':-r[6],    # need to do the math to get R from V
-         't_dome_ohm':-r[7]}
-    send(par)
-    send(psp)
-    send(pir)
+    par = None
+    psp = None
+    pir = None
+    
+    if daqhv is None:
+        daqhv = initdaqhv()
+    if daqhv is not None:
+        r = daqhv.ReadAll()
+        if r is not None:
+            par = {'tag':'PAR',
+                 'ts':dt2ts(datetime.utcnow()),
+                 'par_V':2*r[0]}    # PAR connects to DAQ via a V/2 voltage divider (0.1% precision)
+            send(par)
 
-'''def taskPIR():
-    d = {'tag':'PIR',
-         'ts':dt2ts(datetime.utcnow()),
-         'ir_mV':50*random(),
-         't_case_ohm':10e3*random(),
-         't_dome_ohm':10e3*random()}
-    send(d)
+            Vref = 2.5
+            if Vref > r[6] and Vref > r[7]:  # TODO: also check for ZeroDivisionError
+                r_case = 10e3*r[6]/(Vref-r[6])
+                r_dome = 10e3*r[7]/(Vref-r[7])
+                pir = {'tag':'PIR',
+                       'ts':dt2ts(datetime.utcnow()),
+                       't_case_ohm':r_case,
+                       't_dome_ohm':r_dome,
+                       't_case_degC':r2t(r_case),
+                       't_dome_degC':r2t(r_dome)}
+            else:
+                logger.warning('V_thermistor >= Vref: {},{}'.format(r[6],r[7]))
+        else:
+            logger.error('Unable to read the DAQ.')
+            daqhv = None
 
-def taskPAR():
-    d = {'tag':'PAR',
-         'ts':dt2ts(datetime.utcnow()),
-         'par_V':5*random()}
-    send(d)
+    if daqlv is None:
+        daqlv = initdaqlv()
+    if daqlv is not None:
+        r = daqlv.ReadAll()
+        if r is not None:
+            psp = {'tag':'PSP',
+                 'ts':dt2ts(datetime.utcnow()),
+                 'psp_mV':r[1]/1e-3}
+            send(psp)
 
-def taskPSP():
-    d = {'tag':'PSP',
-         'ts':dt2ts(datetime.utcnow()),
-         'psp_mV':1e3*random()}
-    send(d)
-
-def taskPortWind():
+            if pir is not None:
+                pir.update({'tag':'PIR',
+                     'ts':dt2ts(datetime.utcnow()),
+                     'ir_mV':r[2]/1e-3})
+            else:
+                pir = {'tag':'PIR',
+                     'ts':dt2ts(datetime.utcnow()),
+                     'ir_mV':r[2]/1e-3,
+                     't_case_ohm':float('nan'),
+                     't_dome_ohm':float('nan')}
+            send(pir)
+        else:
+            logger.error('Unable to read the DAQ.')
+            daqlv = None
+        
+    
+'''def taskPortWind():
     d = {'tag':'PortWind',
          'ts':dt2ts(datetime.utcnow()),
          'apparent_speed_mps':50*random(),
@@ -111,25 +180,12 @@ def taskBME280Sample():
          'P':20*random()-10 + 101.325,
          'RH':100*random()}
     send(d)
+'''
 
-
-LC = [LoopingCall(taskPIR),
-      LoopingCall(taskPAR),
-      LoopingCall(taskPSP),
-      LoopingCall(taskPortWind),
-      LoopingCall(taskStarboardWind),
-      LoopingCall(taskUltrasonicWind),
-      LoopingCall(taskOpticalRain),
-      LoopingCall(taskBME280Sample)
-      ]
-for lc in LC:
-    lc.start(1,now=False)'''
-
-lc = LoopingCall(taskLight)
+lc = LoopingCall(taskDAQ)
 lc.start(1,now=False)
 
-
 reactor.run()
-del daq
-logging.info('terminated')
-
+del daqhv
+del daqlv
+logging.info('Terminated')

@@ -39,7 +39,7 @@ logger.setLevel(logging.DEBUG)
 fh = logging.handlers.RotatingFileHandler(join(log_path,'log2db.log'),
                                           maxBytes=1e8,
                                           backupCount=10)
-fh.setLevel(logging.DEBUG)
+fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logging.Formatter.converter = time.gmtime

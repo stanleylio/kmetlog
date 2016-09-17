@@ -8,7 +8,7 @@
 import os,time,zmq,json,sys
 from datetime import datetime
 sys.path.append(r'../node')
-from helper import dt2ts
+from helper import dt2ts,ts2dt
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
@@ -40,8 +40,8 @@ def taskDisp():
     for tag in sorted(D.keys()):
         #print(D[tag])
         print('- - - - -')
-        print('{} ({:.1f}s ago)'.format(tag,dt2ts(datetime.utcnow()) - D[tag]['ts']))
-        for col in D[tag].keys():
+        print('{} ({} ago)'.format(tag,datetime.utcnow() - ts2dt(D[tag]['ts'])))
+        for col in sorted(D[tag].keys()):
             print('\t{}={}'.format(col,D[tag][col]))
 
 def taskLiveliness():
@@ -62,7 +62,7 @@ reactor.run()
 sys.exit()
 
 
-while True:
+'''while True:
     try:
         socks = dict(poller.poll(1000))
         if socket in socks and zmq.POLLIN == socks[socket]:
@@ -85,3 +85,4 @@ while True:
 
 socket.close()
 
+'''

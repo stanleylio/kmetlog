@@ -8,9 +8,7 @@
 import serial,io,time,logging
 
 
-#'DEBUG,INFO,WARNING,ERROR,CRITICAL'
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 
 class ADAM4018(object):
@@ -19,7 +17,6 @@ class ADAM4018(object):
     
     def __init__(self,address,port,baud=9600):
         assert 2 == len(address)
-        assert len(address) > 0
         assert baud in self._bauds.keys()
         self._address = address
         self._s = serial.Serial(port,baud,timeout=1)
@@ -176,7 +173,7 @@ FCI: Format, Checksum and Integration time. P.117"""
             self._sio.flush()
             r = self._sio.readline()
             if r.startswith('!') and self._address == r[1:3]:
-                logger.debug('wait 7 seconds...')
+                logger.info('Wait seven seconds for self-calibration...')
                 # The DAQ may respond immediately, but the new settings may not
                 # come into effect at the same time. There is no indication when
                 # the new settings become effective, so the 7-second wait is mandatory.
@@ -189,8 +186,8 @@ FCI: Format, Checksum and Integration time. P.117"""
             logger.warning('Invalid command. Response={}'.format(r))    # P.121
         else:
             logger.debug('Unexpected response from serial bus: {}'.format(r))
-            return None
-
+        return False
+        
     def cmdConfigurationStatus(self):
         return self._query('2')
 
@@ -202,6 +199,10 @@ FCI: Format, Checksum and Integration time. P.117"""
 
 
 if '__main__' == __name__:
+    logging.basicConfig()
+    #'DEBUG,INFO,WARNING,ERROR,CRITICAL'
+    logger.setLevel(logging.DEBUG)
+    
     import os
     with ADAM4018('01','/dev/ttyUSB0',9600) as daq:
         #print daq.cmdConfigurationStatus()
@@ -216,4 +217,19 @@ if '__main__' == __name__:
                     #print(daq.ReadChannel(2))
                     print(daq.ReadAll())
                     time.sleep(0.1)
-            
+        else:
+            print('CheckModuleName() returns False')
+
+
+    # changing module address (need to go into INIT* mode)
+    '''import os
+    with ADAM4018('00','COM4',9600) as daq:
+        print daq.cmdConfigurationStatus()
+        print daq.cmdReadModuleName()
+        print daq.cmdReadFirmwareVersion()
+
+        daq._configuration(NewAddress='02')
+        print('... should be done.')
+        # the address checks don't apply because the module responds to '00' in init
+        # mode, while still retaining configured address as whatever (such has '02')'''
+
