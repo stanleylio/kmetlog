@@ -62,12 +62,13 @@ while True:
         socks = dict(poller.poll(1000))
         if socket in socks and zmq.POLLIN == socks[socket]:
             msg = socket.recv_string()
-            logger.debug(msg)
-            dt = datetime.utcnow()
-            ts = dt2ts(dt)
-            #f.write('{},{},{}\n'.format(dt,ts,msg))
-            f.write('{},{}\n'.format(ts,msg))
-            f.flush()
+            if len(msg):
+                logger.debug(msg)
+                dt = datetime.utcnow()
+                ts = dt2ts(dt)
+                #f.write('{},{},{}\n'.format(dt,ts,msg))
+                f.write('{},{}\n'.format(ts,msg))
+                f.flush()
     except KeyboardInterrupt:
         logger.info('User interrupted')
         break

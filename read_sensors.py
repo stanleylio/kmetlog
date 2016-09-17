@@ -194,7 +194,6 @@ def taskBME280():
     except Exception as e:
         logger.error(e)
 
-
 def taskHeartbeat():
     send({})
 

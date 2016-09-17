@@ -31,9 +31,10 @@ def taskRecv():
     socks = dict(poller.poll(500))
     if socket in socks and zmq.POLLIN == socks[socket]:
         msg = socket.recv_string()
-        msg = msg.split(',',1)
-        d = json.loads(msg[1])
-        D[d['tag']] = d
+        if len(msg):
+            msg = msg.split(',',1)
+            d = json.loads(msg[1])
+            D[d['tag']] = d
 
 def taskDisp():
     os.system('cls' if os.name == 'nt' else 'clear')
