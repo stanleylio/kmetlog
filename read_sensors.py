@@ -146,23 +146,30 @@ def taskDAQ():
         else:
             logger.error('Unable to read the DAQ')
             daqlv = None
-        
-    
-'''def taskPortWind():
-    d = {'tag':'PortWind',
-         'ts':dt2ts(datetime.utcnow()),
-         'apparent_speed_mps':50*random(),
-         'apparent_direction_deg':360*random()}
-    send(d)
+
+def taskPortWind():
+    taskPortWind.dir = (taskPortWind.dir + 100*random()/10 - 5) % 360
+    try:
+        d = {'tag':'PortWind',
+             'ts':dt2ts(datetime.utcnow()),
+             'apparent_speed_mps':20*random(),
+             'apparent_direction_deg':taskPortWind.dir}
+        send(d)
+    except Exception as e:
+        logger.warning(e)
+taskPortWind.dir = 360*random()
 
 def taskStarboardWind():
-    d = {'tag':'StarboardWind',
-         'ts':dt2ts(datetime.utcnow()),
-         'apparent_speed_mps':50*random(),
-         'apparent_direction_deg':360*random()}
-    send(d)
+    try:
+        d = {'tag':'StarboardWind',
+             'ts':dt2ts(datetime.utcnow()),
+             'apparent_speed_mps':20*random(),
+             'apparent_direction_deg':360*random()}
+        send(d)
+    except Exception as e:
+        logger.warning(e)
 
-def taskUltrasonicWind():
+'''def taskUltrasonicWind():
     d = {'tag':'UltrasonicWind',
          'ts':dt2ts(datetime.utcnow()),
          'apparent_speed_mps':50*random(),
@@ -194,16 +201,20 @@ def taskBME280():
     except Exception as e:
         logger.error(e)
 
-def taskHeartbeat():
-    send({})
+#def taskHeartbeat():
+#    send({})
 
 
 lcdaq = LoopingCall(taskDAQ)
 lcbme = LoopingCall(taskBME280)
-lchb = LoopingCall(taskHeartbeat)
+#lchb = LoopingCall(taskHeartbeat)
+lcport = LoopingCall(taskPortWind)
+lcstbd = LoopingCall(taskStarboardWind)
 lcdaq.start(30,now=False)
 lcbme.start(60,now=False)
-lchb.start(1,now=True)
+lcport.start(1,now=False)
+lcstbd.start(1,now=False)
+#lchb.start(1,now=True)
 
 
 reactor.run()

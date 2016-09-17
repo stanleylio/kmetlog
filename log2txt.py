@@ -61,7 +61,7 @@ while True:
     try:
         socks = dict(poller.poll(1000))
         if socket in socks and zmq.POLLIN == socks[socket]:
-            msg = socket.recv_string()
+            msg = socket.recv_string().strip()
             if len(msg):
                 logger.debug(msg)
                 dt = datetime.utcnow()
