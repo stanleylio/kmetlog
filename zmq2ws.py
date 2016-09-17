@@ -1,10 +1,32 @@
-import zmq,logging
+import zmq,logging,time
+import logging.handlers
+from os import makedirs
+from os.path import exists,join
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
-
 from autobahn.twisted.websocket import WebSocketServerFactory,\
      WebSocketServerProtocol,\
      listenWS
+
+
+log_path = 'log'
+if not exists(log_path):
+    makedirs(log_path)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+fh = logging.handlers.RotatingFileHandler(join(log_path,'zmq2ws.log'),
+                                          maxBytes=1e7,
+                                          backupCount=3)
+fh.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+logging.Formatter.converter = time.gmtime
+formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 
 class BroadcastServerProtocol(WebSocketServerProtocol):
@@ -20,11 +42,6 @@ class BroadcastServerProtocol(WebSocketServerProtocol):
 
 
 class BroadcastServerFactory(WebSocketServerFactory):
-    """
-    Simple broadcast server broadcasting any message it receives to all
-    currently connected clients.
-    """
-
     def __init__(self, url):
         WebSocketServerFactory.__init__(self, url)
         self.clients = []
@@ -39,45 +56,48 @@ class BroadcastServerFactory(WebSocketServerFactory):
 
     def register(self, client):
         if client not in self.clients:
-            print("registered client {}".format(client.peer))
+            logger.info("registered client {}".format(client.peer))
             self.clients.append(client)
 
     def unregister(self, client):
         if client in self.clients:
-            print("unregistered client {}".format(client.peer))
+            logger.info("unregistered client {}".format(client.peer))
             self.clients.remove(client)
 
     def broadcast(self, msg):
-        print("broadcasting message '{}' ..".format(msg))
+        #logger.info("broadcasting message '{}'".format(msg))
         for c in self.clients:
             c.sendMessage(msg.encode('utf8'))
-            print("message sent to {}".format(c.peer))
+            logger.debug("message sent to {}".format(c.peer))
 
 
-ServerFactory = BroadcastServerFactory
-factory = ServerFactory(u'ws://localhost:9000')
-factory.protocol = BroadcastServerProtocol
-listenWS(factory)
-
+# relay this...
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 socket.connect('tcp://localhost:9002')
-socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1_StarboardWind')
+socket.setsockopt_string(zmq.SUBSCRIBE,u'')
+
+# ... to this
+ServerFactory = BroadcastServerFactory
+factory = ServerFactory(u'ws://*:9000')
+factory.protocol = BroadcastServerProtocol
+listenWS(factory)
 
 
+poller = zmq.Poller()
+poller.register(socket,zmq.POLLIN)
 def task():
-    s = socket.recv_string()
-    print(s)
-    factory.broadcast(s)
+    socks = dict(poller.poll(1000))
+    if socket in socks and zmq.POLLIN == socks[socket]:
+        s = socket.recv_string()
+        logger.debug(s)
+        factory.broadcast(s)
 
 lc = LoopingCall(task)
 lc.start(0.1)
-
 
 reactor.run()
 
 socket.close()
 
-
-print('terminated')
-
+logger.info('terminated')

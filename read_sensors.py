@@ -9,6 +9,7 @@ import sys,zmq,logging,json,time,traceback
 import logging.handlers
 sys.path.append(r'../node')
 from helper import *
+from drivers.Adafruit_BME280 import *
 from random import random
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -70,15 +71,18 @@ logger.info('Broadcasting at {}'.format(zmq_port))
 
 
 def send(d):
-    topic = d['tag']
-    s = json.dumps(d,separators=(',',':'))
-    s = 'kmet1_{topic},{msg}'.format(msg=s,topic=topic)
-    logger.debug(s)
     try:
+        if 'tag' in d:
+            topic = d['tag']
+            s = json.dumps(d,separators=(',',':'))
+            s = 'kmet1_{topic},{msg}'.format(msg=s,topic=topic)
+            logger.debug(s)
+        else:
+            s = ''
         socket.send_string(s)
     except Exception as e:
         logger.error(e)
-        traceback.print_exc()
+        #traceback.print_exc()
 
 
 daqhv = None
@@ -115,7 +119,7 @@ def taskDAQ():
             else:
                 logger.warning('V_thermistor >= Vref: {},{}'.format(r[6],r[7]))
         else:
-            logger.error('Unable to read the DAQ.')
+            logger.error('Unable to read the DAQ')
             daqhv = None
 
     if daqlv is None:
@@ -140,7 +144,7 @@ def taskDAQ():
                      't_dome_ohm':float('nan')}
             send(pir)
         else:
-            logger.error('Unable to read the DAQ.')
+            logger.error('Unable to read the DAQ')
             daqlv = None
         
     
@@ -172,18 +176,36 @@ def taskOpticalRain():
          'instantaneous_mmphr':100*random(),
          'accumulation_mm':1000*random()}
     send(d)
-
-def taskBME280Sample():
-    d = {'tag':'BME280',
-         'ts':dt2ts(datetime.utcnow()),
-         'T':100*random()-40,
-         'P':20*random()-10 + 101.325,
-         'RH':100*random()}
-    send(d)
 '''
 
-lc = LoopingCall(taskDAQ)
-lc.start(1,now=False)
+def taskBME280():
+    try:
+        bme = BME280_sl(bus=2,mode=BME280_OSAMPLE_16)
+        r = bme.read()
+        if r is not None:
+            d = {'tag':'BME280',
+                 'ts':dt2ts(datetime.utcnow()),
+                 'T':r['t'],
+                 'P':r['p'],
+                 'RH':r['rh']}
+            send(d)
+        else:
+            logger.warning('Unable to read BME280')
+    except Exception as e:
+        logger.error(e)
+
+
+def taskHeartbeat():
+    send({})
+
+
+lcdaq = LoopingCall(taskDAQ)
+lcbme = LoopingCall(taskBME280)
+lchb = LoopingCall(taskHeartbeat)
+lcdaq.start(30,now=False)
+lcbme.start(60,now=False)
+lchb.start(1,now=True)
+
 
 reactor.run()
 del daqhv
