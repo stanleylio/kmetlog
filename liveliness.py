@@ -5,7 +5,7 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
-import os,time,zmq,json,sys
+import os,time,zmq,json,sys,traceback
 from datetime import datetime
 sys.path.append(r'../node')
 from helper import dt2ts,ts2dt
@@ -18,38 +18,57 @@ from twisted.internet import reactor
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 socket.connect('tcp://localhost:9002')
-socket.setsockopt_string(zmq.SUBSCRIBE,u'')
-
+socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1')
 
 poller = zmq.Poller()
 poller.register(socket,zmq.POLLIN)
 
 
-D = {}
-
+D = {}  # latest samples of all received variables
+Dt = {} # one list of timestamps per variable, max list length = 10
 def taskRecv():
-    socks = dict(poller.poll(500))
-    if socket in socks and zmq.POLLIN == socks[socket]:
-        msg = socket.recv_string()
-        if len(msg):
-            msg = msg.split(',',1)
-            d = json.loads(msg[1])
-            D[d['tag']] = d
+    try:
+        socks = dict(poller.poll(100))
+        if socket in socks and zmq.POLLIN == socks[socket]:
+            msg = socket.recv_string()
+            if len(msg):
+                msg = msg.split(',',1)
+                d = json.loads(msg[1])
+                tag = d['tag']
+                D[tag] = d
+                
+                if tag not in Dt:
+                    Dt[tag] = []
+                Dt[tag].append(d['ts'])
+                while Dt[tag] is not None and len(Dt[tag]) > 10:
+                    Dt[tag].pop(0)
+    except Exception as e:
+        traceback.print_exc()
 
+# ago should be <= period. should check ago <= 1.5*period
 def taskDisp():
-    os.system('cls' if os.name == 'nt' else 'clear')
-    for tag in sorted(D.keys()):
-        #print(D[tag])
-        print('- - - - -')
-        print('{} ({} ago)'.format(tag,datetime.utcnow() - ts2dt(D[tag]['ts'])))
-        for col in sorted(D[tag].keys()):
-            print('\t{}={}'.format(col,D[tag][col]))
+    try:
+        os.system('cls' if os.name == 'nt' else 'clear')
+        for tag in sorted(D.keys()):
+            #print(D[tag])
+            print('')
+            p = float('nan')
+            s = '{}, {:.1f}s ago'.format(tag,dt2ts(datetime.utcnow()) - D[tag]['ts'])
+            if len(Dt[tag]) > 1:
+                p = sum([p[0]-p[1] for p in zip(Dt[tag][1:],Dt[tag][0:-1])])/(len(Dt[tag]) - 1)
+                s = s + ', {:.1f}s per sample'.format(p)
+            print(s)
+            for col in sorted(D[tag].keys()):
+                print('\t{}={}'.format(col,D[tag][col]))
+    except:
+        traceback.print_exc()
 
 def taskLiveliness():
     global D
     for k in D.keys():
         if dt2ts(datetime.utcnow()) - D[k]['ts'] > 10*60:
             del D[k]
+
 
 lcRecv = LoopingCall(taskRecv)
 lcDisp = LoopingCall(taskDisp)
@@ -59,8 +78,6 @@ lcDisp.start(1)
 lcLiveliness.start(60)
 
 reactor.run()
-
-sys.exit()
 
 
 '''while True:
@@ -84,6 +101,4 @@ sys.exit()
         logger.info('User interrupted')
         break
 
-socket.close()
-
-'''
+socket.close()'''

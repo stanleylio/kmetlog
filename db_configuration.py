@@ -11,7 +11,7 @@ from sqlalchemy import Table,Column,Integer,Float,String,Sequence
 # a list; one entry per table.
 # every entry is a dict(), with the 'name' of the table and the definition of 'columns'
 schema = [{'name':'PIR',
-      'columns':[('ir_mV',Float),('t_case_ohm',Float),('t_dome_ohm',Float)]},
+      'columns':[('ir_mV',Float),('t_case_V',Float),('t_dome_V',Float)]},
      {'name':'PSP',
       'columns':[('psp_mV',Float)]},
      {'name':'PAR',
