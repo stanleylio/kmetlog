@@ -1,7 +1,10 @@
+# Periodically read the sensors and publish via TCP
+#
+#
 # Putting all polling in one process:
 #   Pros: all code in one place
+#       no multiple ports to subscribe to for clients
 #       no multiple processes to manage
-#       no multiple ports to subscribe to
 #       a single log file
 #   Cons:
 #       one slow task can slow/block everything else
@@ -15,11 +18,11 @@ import sys,zmq,logging,json,time,traceback
 import logging.handlers
 sys.path.append(r'../node')
 from helper import *
-from drivers.Adafruit_BME280 import *
 from random import random
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
-from datetime import datetime
+from datetime import datetime,timedelta
+from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
 from os import makedirs
 from os.path import exists,join
@@ -77,6 +80,7 @@ socket.bind(zmq_port)
 logger.info('Broadcasting at {}'.format(zmq_port))
 
 
+last_transmitted = datetime.utcnow()
 def send(d):
     try:
         if 'tag' in d:
@@ -86,6 +90,8 @@ def send(d):
             logger.debug(s)
         else:
             s = ''
+        global last_transmitted
+        last_transmitted = datetime.utcnow()
         socket.send_string(s)
     except Exception as e:
         logger.error(e)
@@ -118,21 +124,6 @@ def taskDAQ():
                        'ir_mV':r[2]/1e-3,   # will be overwritten if LV read is successful
                        't_case_V':r[6],
                        't_dome_V':r[7]}
-                '''Vref = 2.5
-                if Vref > r[6] and Vref > r[7]:  # TODO: also check for ZeroDivisionError
-                    #r_case = 10e3*r[6]/(Vref-r[6])
-                    #r_dome = 10e3*r[7]/(Vref-r[7])
-                    pir = {'tag':'PIR',
-                           'ts':dt2ts(datetime.utcnow()),
-                           't_case_V':r[6],
-                           't_dome_V':r[7],
-                           #'t_case_ohm':r_case,
-                           #'t_dome_ohm':r_dome,
-                           #'t_case_degC':r2t(r_case),
-                           #'t_dome_degC':r2t(r_dome)
-                           }
-                else:
-                    logger.warning('V_thermistor >= Vref: {},{}'.format(r[6],r[7]))'''
             else:
                 logger.error('Unable to read the DAQ')
                 daqhv = None
@@ -250,8 +241,12 @@ def taskBME280():
         logger.error(e)
 
 
-#def taskHeartbeat():
-#    send({})
+def taskHeartbeat():
+    try:
+        if datetime.utcnow() - last_transmitted > timedelta(seconds=60):
+            send({})
+    except Exception as e:
+        logger.error(e)
 
 
 lcdaq = LoopingCall(taskDAQ)
@@ -260,14 +255,14 @@ lcport = LoopingCall(taskPortWind)
 lcstbd = LoopingCall(taskStarboardWind)
 lcultras = LoopingCall(taskUltrasonicWind)
 lcoptical = LoopingCall(taskOpticalRain)
-#lchb = LoopingCall(taskHeartbeat)
+lchb = LoopingCall(taskHeartbeat)
 lcdaq.start(30)
 lcbme.start(60)
 lcport.start(1)
 lcstbd.start(1)
 lcultras.start(1)
 lcoptical.start(5)
-#lchb.start(1,now=False)
+lchb.start(1,now=False)
 
 reactor.run()
 del daqhv

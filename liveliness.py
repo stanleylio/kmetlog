@@ -18,7 +18,7 @@ from twisted.internet import reactor
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 socket.connect('tcp://localhost:9002')
-socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1')
+socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1_')
 
 poller = zmq.Poller()
 poller.register(socket,zmq.POLLIN)
@@ -45,18 +45,20 @@ def taskRecv():
     except Exception as e:
         traceback.print_exc()
 
-# ago should be <= period. should check ago <= 1.5*period
 def taskDisp():
     try:
         os.system('cls' if os.name == 'nt' else 'clear')
         for tag in sorted(D.keys()):
-            #print(D[tag])
-            print('')
-            p = float('nan')
-            s = '{}, {:.1f}s ago'.format(tag,dt2ts(datetime.utcnow()) - D[tag]['ts'])
+            ago = dt2ts(datetime.utcnow()) - D[tag]['ts']
+            s = '{}, {:.1f}s ago'.format(tag,ago)
+            period = float('nan')
             if len(Dt[tag]) > 1:
-                p = sum([p[0]-p[1] for p in zip(Dt[tag][1:],Dt[tag][0:-1])])/(len(Dt[tag]) - 1)
-                s = s + ', {:.1f}s per sample'.format(p)
+                period = sum([p[0]-p[1] for p in zip(Dt[tag][1:],Dt[tag][0:-1])])/(len(Dt[tag]) - 1)
+                s = s + ', {:.1f}s per sample'.format(period)
+            # ago should be <= period.
+            if ago > 2*period:
+                s = s + ' (dead?)'
+            print('')
             print(s)
             for col in sorted(D[tag].keys()):
                 print('\t{}={}'.format(col,D[tag][col]))
@@ -66,7 +68,7 @@ def taskDisp():
 def taskLiveliness():
     global D
     for k in D.keys():
-        if dt2ts(datetime.utcnow()) - D[k]['ts'] > 10*60:
+        if dt2ts(datetime.utcnow()) - D[k]['ts'] > 60*60:
             del D[k]
 
 

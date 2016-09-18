@@ -50,7 +50,7 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 
-protocol_tag = u'kmet1'
+protocol_tag = u'kmet1_'
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 socket.connect('tcp://localhost:9002')
