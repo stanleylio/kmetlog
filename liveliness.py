@@ -48,6 +48,7 @@ def taskRecv():
 def taskDisp():
     try:
         os.system('cls' if os.name == 'nt' else 'clear')
+        os.system('du -sh /root/logging/data /root/logging/log')
         for tag in sorted(D.keys()):
             ago = dt2ts(datetime.utcnow()) - D[tag]['ts']
             s = '{}, {:.1f}s ago'.format(tag,ago)
