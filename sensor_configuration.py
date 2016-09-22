@@ -14,7 +14,7 @@ conf = [{'name':'Anemometer (PORT)',
         {'name':'Ultrasonic Anemometer',
          'make':'RM Young',
          'model':'85106',
-         'port':'/dev/ttyUSB2',
+         'port':'/dev/ttyUSB7',
          'baud':9600},
 
         {'name':'Optical Rain Gauge',

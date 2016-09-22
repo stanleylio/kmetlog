@@ -14,7 +14,7 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
-import sys,zmq,logging,json,time,traceback
+import sys,zmq,logging,json,time,traceback,serial
 import logging.handlers
 sys.path.append(r'../node')
 from helper import *
@@ -73,6 +73,7 @@ def initdaqlv():
     return daq
 
 
+logger.debug('binding 0MQ port...')
 zmq_port = 'tcp://*:9002'
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
@@ -189,25 +190,38 @@ def taskStarboardWind():
 
 def taskUltrasonicWind():
     try:
-        '''s = open('/dev/ttyUSBN',1200,timeout=1):
-            s.write('M0!')
+        with serial.Serial('/dev/ttyUSB7',9600,timeout=0.1) as s:
+            #s.write('M0!\r')       # the sensor is slow at processing command...
+            s.write('M')
+            s.write('0')
+            s.write('!')
+            s.write('\r')
+            s.flushOutput()
             line = []
-            for i in range(10):
-                r = s.read()
+            for i in range(20):     # should be ~17 chr
+                r = s.read(size=1)
                 if len(r):
-                    line.append(r)'''
-        d = {'tag':'UltrasonicWind',
-             'ts':dt2ts(datetime.utcnow()),
-             'apparent_speed_mps':50*random(),
-             'apparent_direction_deg':360*random()}
-        send(d)
+                    line.extend(r)
+                if '\r' in line:
+                    break
+            logger.debug(''.join(line))
+            logger.debug([ord(c) for c in line])
+            line = ''.join(line).strip().split(' ')
+            if '0' == line[0] and '*' == line[3][2]:
+                d = {'tag':'UltrasonicWind',
+                     'ts':dt2ts(datetime.utcnow()),
+                     'apparent_speed_mps':float(line[1]),
+                     'apparent_direction_deg':float(line[2])}
+                send(d)
+            else:
+                logger.error('wut? {}'.format(line))
     except Exception as e:
         logger.error(e)
 
 
 def taskOpticalRain():
     try:
-        '''s = open('/dev/ttyUSBN',1200,timeout=1):
+        '''s = serial.Serial('/dev/ttyUSBN',1200,timeout=1):
             s.write('Q')
             line = []
             for i in range(10):
@@ -249,6 +263,7 @@ def taskHeartbeat():
         logger.error(e)
 
 
+logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
 lcbme = LoopingCall(taskBME280)
 lcport = LoopingCall(taskPortWind)
@@ -264,6 +279,7 @@ lcultras.start(1)
 lcoptical.start(5)
 lchb.start(1,now=False)
 
+logger.debug('starting reactor()...')
 reactor.run()
 del daqhv
 del daqlv
