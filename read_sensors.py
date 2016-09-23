@@ -29,7 +29,7 @@ from os.path import exists,join
 #from r2t import r2t
 
 
-log_path = 'log'
+log_path = '/var/logging/log'
 if not exists(log_path):
     makedirs(log_path)
 
@@ -204,8 +204,8 @@ def taskUltrasonicWind():
                     line.extend(r)
                 if '\r' in line:
                     break
-            logger.debug(''.join(line))
-            logger.debug([ord(c) for c in line])
+            #logger.debug(''.join(line))
+            #logger.debug([ord(c) for c in line])
             line = ''.join(line).strip().split(' ')
             if '0' == line[0] and '*' == line[3][2]:
                 d = {'tag':'UltrasonicWind',

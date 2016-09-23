@@ -11,7 +11,7 @@ from os import makedirs
 from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
-from sqlalchemy.orm import sessionmaker
+#from sqlalchemy.orm import sessionmaker
 import db_configuration
 
 
@@ -19,11 +19,11 @@ tags = [t['name'] for t in db_configuration.schema]
 print(tags)
 
 
-db_path = 'data'
+db_path = '/var/logging/data'
 if not exists(db_path):
     makedirs(db_path)
 
-log_path = 'log'
+log_path = '/var/logging/log'
 if not exists(log_path):
     makedirs(log_path)
 

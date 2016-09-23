@@ -15,12 +15,12 @@ from helper import dt2ts
 
 
 # product of this script, the raw text file
-data_path = 'data'
+data_path = '/var/logging/data'
 if not exists(data_path):
     makedirs(data_path)
 
 # log file for debugging use, may or may not include data depending on log level
-log_path = 'log'
+log_path = '/var/logging/log'
 if not exists(log_path):
     makedirs(log_path)
 

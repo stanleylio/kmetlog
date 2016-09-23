@@ -32,7 +32,7 @@ schema = [{'name':'PIR',
 
 if '__main__' == __name__:
     #engine = create_engine('sqlite:///:memory:')
-    engine = create_engine('sqlite:///data/met.db',echo=True)
+    engine = create_engine('sqlite:///data/met.db',echo=True)   # ?
     metadata = MetaData()
 
     # Generate a list of Table(s)

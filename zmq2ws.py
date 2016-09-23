@@ -9,7 +9,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory,\
      listenWS
 
 
-log_path = 'log'
+log_path = '/var/logging/log'
 if not exists(log_path):
     makedirs(log_path)
 
