@@ -29,7 +29,7 @@ with open('/var/logging/log/spaceusage.log') as f:
 
 for k in D.keys():
     d = zip(*D[k])
-    plot_time_series(d[0],[v/1e6 for v in d[1]],\
+    plot_time_series(d[0],[v/1e3 for v in d[1]],\
                      join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png'),\
                      title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
                      markersize=8)
