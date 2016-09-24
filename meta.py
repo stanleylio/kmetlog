@@ -4,6 +4,7 @@ from datetime import datetime
 import logging,traceback
 from display.gen_plot import plot_time_series
 from os.path import join,basename
+from helper import dt2ts
 
 
 logging.basicConfig()
@@ -25,12 +26,24 @@ with open('/var/logging/log/spaceusage.log') as f:
         if line[1] not in D:
             D[line[1]] = []
         D[line[1]].append([ts,float(line[0])])
+# hack
+        while len(D[line[1]]) > 72:
+            D[line[1]].pop(0)
 
 
 for k in D.keys():
     d = zip(*D[k])
-    plot_time_series(d[0],[v/1e3 for v in d[1]],\
+    tmp = [tmp[0] - tmp[1] for tmp in zip(d[1][1:],d[1][0:-1])]
+    tmp = float(sum(tmp))/len(tmp)
+    if tmp <= 1024:
+        rate = tmp
+        linelabel = '{:.1f} kB/hour'.format(rate)
+    else:
+        rate = tmp/1024.
+        linelabel = '{:.1f} MB/hour'.format(rate)
+    plot_time_series(d[0],[v/1024. for v in d[1]],\
                      join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png'),\
                      title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
+                     linelabel=linelabel,
                      markersize=8)
 

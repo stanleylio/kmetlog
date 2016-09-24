@@ -63,7 +63,7 @@ def initdaqhv():
 
 def initdaqlv():
     logger.debug('Initialize low-volt DAQ')
-    daq = ADAM4018('02','/dev/ttyUSB0',9600)
+    daq = ADAM4018('02','/dev/ttyUSB1',9600)
     if not daq.CheckModuleName():
         logger.critical('Cannot reach the DAQ (LV) at 02.')
         return None
@@ -117,7 +117,7 @@ def taskDAQ():
             if r is not None:
                 par = {'tag':'PAR',
                      'ts':dt2ts(datetime.utcnow()),
-                     'par_V':2*r[0]}    # PAR connects to DAQ via a V/2 voltage divider (0.1% precision)
+                     'par_V':2*r[5]}    # PAR connects to DAQ via a V/2 voltage divider (0.1% precision)
                 send(par)
 
                 pir = {'tag':'PIR',
@@ -157,6 +157,8 @@ def taskDAQ():
                          't_case_ohm':float('nan'),
                          't_dome_ohm':float('nan')}
                 send(pir)
+
+                # and what if THIS failed? TODO
             else:
                 logger.error('Unable to read the DAQ (LV)')
                 daqlv = None
@@ -266,15 +268,15 @@ def taskHeartbeat():
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
 lcbme = LoopingCall(taskBME280)
-lcport = LoopingCall(taskPortWind)
-lcstbd = LoopingCall(taskStarboardWind)
+#lcport = LoopingCall(taskPortWind)
+#lcstbd = LoopingCall(taskStarboardWind)
 lcultras = LoopingCall(taskUltrasonicWind)
 lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
 lcdaq.start(30)
 lcbme.start(60)
-lcport.start(1)
-lcstbd.start(1)
+#lcport.start(1)
+#lcstbd.start(1)
 lcultras.start(1)
 lcoptical.start(5)
 lchb.start(1,now=False)
