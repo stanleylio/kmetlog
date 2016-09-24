@@ -41,8 +41,8 @@ def taskPIR():
     d = {'tag':'PIR',
          'ts':dt2ts(datetime.utcnow()),
          'ir_mV':50*random(),
-         't_case_ohm':10e3*random(),
-         't_dome_ohm':10e3*random()}
+         't_case_V':2.5*random(),
+         't_dome_V':2.5*random()}
     send(d)
 
 def taskPAR():
@@ -98,8 +98,8 @@ def taskBME280Sample():
 LC = [LoopingCall(taskPIR),
       LoopingCall(taskPAR),
       LoopingCall(taskPSP),
-      LoopingCall(taskPortWind),
-      LoopingCall(taskStarboardWind),
+      #LoopingCall(taskPortWind),
+      #LoopingCall(taskStarboardWind),
       LoopingCall(taskUltrasonicWind),
       LoopingCall(taskOpticalRain),
       LoopingCall(taskBME280Sample)]

@@ -154,8 +154,8 @@ def taskDAQ():
                     pir = {'tag':'PIR',
                          'ts':dt2ts(datetime.utcnow()),
                          'ir_mV':r[2]/1e-3,
-                         't_case_ohm':float('nan'),
-                         't_dome_ohm':float('nan')}
+                         't_case_V':float('nan'),
+                         't_dome_V':float('nan')}
                 send(pir)
 
                 # and what if THIS failed? TODO
