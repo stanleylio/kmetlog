@@ -7,6 +7,7 @@ from twisted.internet import reactor
 from autobahn.twisted.websocket import WebSocketServerFactory,\
      WebSocketServerProtocol,\
      listenWS
+import config
 
 
 log_path = '/var/logging/log'
@@ -74,7 +75,8 @@ class BroadcastServerFactory(WebSocketServerFactory):
 # relay this...
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-socket.connect('tcp://localhost:9002')
+#socket.connect('tcp://localhost:9002')
+socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 socket.setsockopt_string(zmq.SUBSCRIBE,u'')
 
 # ... to this

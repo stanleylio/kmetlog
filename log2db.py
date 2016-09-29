@@ -12,7 +12,7 @@ from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
 #from sqlalchemy.orm import sessionmaker
-import db_configuration
+import db_configuration,config
 
 
 tags = [t['name'] for t in db_configuration.schema]
@@ -53,7 +53,8 @@ logger.addHandler(ch)
 protocol_tag = u'kmet1_'
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-socket.connect('tcp://localhost:9002')
+#socket.connect('tcp://localhost:9002')
+socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 socket.setsockopt_string(zmq.SUBSCRIBE,protocol_tag)
 poller = zmq.Poller()
 poller.register(socket,zmq.POLLIN)

@@ -12,6 +12,7 @@ from os.path import exists,join
 from datetime import datetime
 sys.path.append('../node')
 from helper import dt2ts
+import config
 
 
 # product of this script, the raw text file
@@ -43,7 +44,8 @@ logger.addHandler(ch)
 
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-socket.connect('tcp://localhost:9002')
+#socket.connect('tcp://localhost:9002')
+socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 
 # get everything
 socket.setsockopt_string(zmq.SUBSCRIBE,u'')
