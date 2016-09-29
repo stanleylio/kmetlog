@@ -104,7 +104,7 @@ LC = [LoopingCall(taskPIR),
       LoopingCall(taskOpticalRain),
       LoopingCall(taskBME280Sample)]
 for lc in LC:
-    lc.start(20*random()/10. + 1,now=False)
+    lc.start(50*random()/10. + 1,now=False)
 
 reactor.run()
 print('done')
