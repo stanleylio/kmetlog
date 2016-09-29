@@ -31,8 +31,14 @@ schema = [{'name':'PIR',
 
 
 if '__main__' == __name__:
+    from os import makedirs
+    from os.path import exists
     #engine = create_engine('sqlite:///:memory:')
-    engine = create_engine('sqlite:///data/met.db',echo=True)   # ?
+
+    if not exists('/var/logging/data'):
+        makedirs('/var/logging/data')
+    
+    engine = create_engine('sqlite:////var/logging/data/met.db',echo=True)   # ?
     metadata = MetaData()
 
     # Generate a list of Table(s)
