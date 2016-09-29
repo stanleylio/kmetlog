@@ -1,5 +1,6 @@
 import sys
 sys.path.append('/root/node')
+sys.path.append('/home/otg/node')
 from datetime import datetime
 import logging,traceback
 from display.gen_plot import plot_time_series
