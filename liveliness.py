@@ -11,13 +11,16 @@ sys.path.append(r'../node')
 from helper import dt2ts,ts2dt
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
+import config
 
 #from tabulate import tabulate
 
 
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-socket.connect('tcp://localhost:9002')
+#socket.connect('tcp://localhost:9002')
+socket.connect('tcp://localhost:' + str(config.kmet1_port))
+#socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1_')
 
 poller = zmq.Poller()

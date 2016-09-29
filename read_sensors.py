@@ -27,6 +27,7 @@ from adam4018 import ADAM4018
 from os import makedirs
 from os.path import exists,join
 #from r2t import r2t
+import config
 
 
 log_path = '/var/logging/log'
@@ -74,7 +75,8 @@ def initdaqlv():
 
 
 logger.debug('binding 0MQ port...')
-zmq_port = 'tcp://*:9002'
+#zmq_port = 'tcp://*:9002'
+zmq_port = 'tcp://*:' + str(config.kmet1_port)
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind(zmq_port)

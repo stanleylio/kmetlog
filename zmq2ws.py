@@ -76,6 +76,7 @@ class BroadcastServerFactory(WebSocketServerFactory):
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 #socket.connect('tcp://localhost:9002')
+#socket.connect('tcp://localhost:' + str(config.kmet1_port))
 socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 socket.setsockopt_string(zmq.SUBSCRIBE,u'')
 
