@@ -19,7 +19,7 @@ logger.setLevel(logging.INFO)
 fh = logging.handlers.RotatingFileHandler(join(log_path,'zmq2ws.log'),
                                           maxBytes=1e7,
                                           backupCount=3)
-fh.setLevel(logging.INFO)
+fh.setLevel(logging.WARNING)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 logging.Formatter.converter = time.gmtime
