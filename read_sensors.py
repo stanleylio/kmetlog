@@ -28,6 +28,7 @@ from os import makedirs
 from os.path import exists,join
 #from r2t import r2t
 import config
+from drivers.watchdog import Watchdog
 
 
 log_path = '/var/logging/log'
@@ -170,7 +171,7 @@ def taskDAQ():
         logger.error(e)
 
 
-def taskPortWind():
+'''def taskPortWind():
     taskPortWind.dir = (taskPortWind.dir + 100*random()/10 - 5) % 360
     try:
         d = {'tag':'PortWind',
@@ -190,12 +191,12 @@ def taskStarboardWind():
              'apparent_direction_deg':360*random()}
         send(d)
     except Exception as e:
-        logger.error(e)
+        logger.error(e)'''
 
 def taskUltrasonicWind():
     try:
         with serial.Serial('/dev/ttyUSB7',9600,timeout=0.1) as s:
-            #s.write('M0!\r')       # the sensor is slow at processing command...
+            #s.write('M0!\r')       # the sensor is slow at processing commands...
             s.write('M')
             s.write('0')
             s.write('!')
@@ -266,6 +267,19 @@ def taskHeartbeat():
     except Exception as e:
         logger.error(e)
 
+def taskBBBWatchdog():
+    for bus in [1,2]:
+        try:
+            for i in range(3):
+                w = Watchdog(bus=bus)
+                w.reset()
+            #print('Found watchdog on bus {}'.format(bus))
+        except Exception as e:
+            #logger.debug(e)
+            pass
+            # if I log it, I would have to specify which I2C bus to avoid false negative;
+            # if I don't log it, I risk missing real error...
+
 
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
@@ -275,6 +289,7 @@ lcbme = LoopingCall(taskBME280)
 lcultras = LoopingCall(taskUltrasonicWind)
 lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
+lcwd = LoopingCall(taskBBBWatchdog)
 lcdaq.start(30)
 lcbme.start(60)
 #lcport.start(1)
@@ -282,6 +297,7 @@ lcbme.start(60)
 lcultras.start(1)
 lcoptical.start(5)
 lchb.start(1,now=False)
+lcwd.start(60,now=False)
 
 logger.debug('starting reactor()...')
 reactor.run()

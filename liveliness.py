@@ -53,6 +53,7 @@ def taskDisp():
         os.system('cls' if os.name == 'nt' else 'clear')
         #os.system('du -sh /root/logging/data /root/logging/log')
         #os.system('date && uptime')
+        print('Data from {}'.format(config.kmet1_ip))
         for tag in sorted(D.keys()):
             ago = dt2ts(datetime.utcnow()) - D[tag]['ts']
             s = '{}, {:.1f}s ago'.format(tag,ago)
@@ -70,7 +71,7 @@ def taskDisp():
     except:
         traceback.print_exc()
 
-def taskLiveliness():
+def taskLiveliness():   # remove old entries
     global D
     for k in D.keys():
         if dt2ts(datetime.utcnow()) - D[k]['ts'] > 60*60:
