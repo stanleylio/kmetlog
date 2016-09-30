@@ -1,3 +1,4 @@
+# plot spaceusage.log
 import sys
 sys.path.append('../node')
 from datetime import datetime
