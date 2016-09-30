@@ -45,7 +45,7 @@ for k in D.keys():
     
     plot_path = join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png')
     if not exists(plot_path):
-        plot_path = join('/var/logging','space_' + basename(k) + '.png')
+        plot_path = join('/var/logging/log','space_' + basename(k) + '.png')
     plot_time_series(d[0],[v/1024. for v in d[1]],\
                      plot_path,\
                      title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
