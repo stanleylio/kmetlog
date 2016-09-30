@@ -144,7 +144,7 @@ def taskDAQ():
             if r is not None:
                 psp = {'tag':'PSP',
                      'ts':dt2ts(datetime.utcnow()),
-                     'psp_mV':r[1]/1e-3}
+                     'psp_mV':r[5]/1e-3}
                 send(psp)
 
                 if pir is not None:
