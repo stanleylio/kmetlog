@@ -4,7 +4,7 @@ sys.path.append('../node')
 from datetime import datetime
 import logging,traceback
 from display.gen_plot import plot_time_series
-from os.path import join,basename
+from os.path import join,basename,exists
 from helper import dt2ts
 
 
@@ -42,9 +42,12 @@ for k in D.keys():
     else:
         rate = tmp/1024.
         linelabel = '{:.1f} MB/hour'.format(rate)
+    
+    plot_path = join('/var/logging/log','space_' + basename(k) + '.png')
+    if exists(plot_path):
+        plot_path = join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png')
     plot_time_series(d[0],[v/1024. for v in d[1]],\
-                     join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png'),\
+                     plot_path,\
                      title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
                      linelabel=linelabel,
                      markersize=8)
-
