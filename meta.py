@@ -28,7 +28,7 @@ with open('/var/logging/log/spaceusage.log') as f:
             D[line[1]] = []
         D[line[1]].append([ts,float(line[0])])
 # hack
-        while len(D[line[1]]) > 24*7:
+        while len(D[line[1]]) > 24*14:
             D[line[1]].pop(0)
 
 
