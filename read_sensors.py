@@ -212,14 +212,14 @@ def taskUltrasonicWind():
             #logger.debug(''.join(line))
             #logger.debug([ord(c) for c in line])
             line = ''.join(line).strip().split(' ')
-            if '0' == line[0] and '*' == line[3][2]:
+            if '0' == line[0] and '*' == line[3][2]:    # '0' is the address of the sensor
                 d = {'tag':'UltrasonicWind',
                      'ts':dt2ts(datetime.utcnow()),
                      'apparent_speed_mps':float(line[1]),
                      'apparent_direction_deg':float(line[2])}
                 send(d)
             else:
-                logger.error('wut? {}'.format(line))
+                logger.error('Failed to read ultrasonic anemometer. {}'.format(line))
     except Exception as e:
         logger.error(e)
 
@@ -290,7 +290,7 @@ lcultras = LoopingCall(taskUltrasonicWind)
 lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
 lcwd = LoopingCall(taskBBBWatchdog)
-lcdaq.start(30)
+lcdaq.start(10)
 lcbme.start(60)
 #lcport.start(1)
 #lcstbd.start(1)
