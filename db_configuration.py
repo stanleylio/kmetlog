@@ -1,4 +1,4 @@
-# initialize a database with the proper tables and columns
+# Initialize a database with the proper tables and columns
 # does nothing if the database already exists and has the same configuration
 # not tested for database migration (when schema changes)
 #
@@ -28,6 +28,22 @@ schema = [{'name':'PIR',
       'columns':[('T',Float),('P',Float),('RH',Float)]},
      # two more radiation shields and one more rain gauge
      ]
+
+
+def get_list_of_sensors():
+    """Get the list of sensors (tables)"""
+    return [t['name'] for t in schema]
+
+def get_list_of_variables(sensor):
+    """Get a list of variables (columns) defined for the given sensor"""
+    if sensor not in get_list_of_sensors():
+        return None
+    try:
+        for t in schema:
+            if sensor == t['name']:
+                return list(zip(*t['columns'])[0])
+    except:
+        return None
 
 
 if '__main__' == __name__:
