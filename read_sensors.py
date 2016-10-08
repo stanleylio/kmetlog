@@ -223,6 +223,7 @@ def taskUltrasonicWind():
         logger.error(traceback.format_exc())
 
 
+last_reset_day = datetime.utcnow().day
 def taskOpticalRain():
     try:
         with serial.Serial('/dev/ttyUSB6',1200,timeout=1) as s:
@@ -235,12 +236,26 @@ def taskOpticalRain():
                 if '\r' in line:
                     break
             line = ''.join(line).rstrip()
-        d = {'tag':'OpticalRain',
-             'ts':dt2ts(datetime.utcnow()),
-             'weather_condition':line[0:2],
-             'instantaneous_mmphr':float(line[3:7]),
-             'accumulation_mm':float(line[8:15])}
-        send(d)
+
+            d = {'tag':'OpticalRain',
+                 'ts':dt2ts(datetime.utcnow()),
+                 'weather_condition':line[0:2],
+                 'instantaneous_mmphr':float(line[3:7]),
+                 'accumulation_mm':float(line[8:15])}
+            send(d)
+
+            # - - -
+
+            ts = datetime.utcnow()
+            global last_reset_day
+            if not ts.day == last_reset_day:
+                logging.info('Accumulation Data Reset')
+                s.write('R')
+                for i in range(10):
+                    r = s.read()
+                    if len(r):  # whatever it is, as long as the sensor responded
+                        last_reset_day = ts.day
+                        break
     except:
         logger.error(traceback.format_exc())
 
