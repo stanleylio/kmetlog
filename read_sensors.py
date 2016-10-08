@@ -97,9 +97,8 @@ def send(d):
         global last_transmitted
         last_transmitted = datetime.utcnow()
         socket.send_string(s)
-    except Exception as e:
-        logger.error(e)
-        #traceback.print_exc()
+    except:
+        logger.error(traceback.format_exc())
 
 
 daqhv = None
@@ -133,8 +132,8 @@ def taskDAQ():
                 daqhv = None
         else:
             logger.error('DAQ (HV) initialization failed')
-    except Exception as e:
-        logger.error(e)
+    except:
+        logger.error(traceback.format_exc())
 
     try:
         if daqlv is None:
@@ -167,8 +166,8 @@ def taskDAQ():
                 daqlv = None
         else:
             logger.error('DAQ (LV) initialization failed')
-    except Excetion as e:
-        logger.error(e)
+    except:
+        logger.error(traceback.format_exc())
 
 
 '''def taskPortWind():
@@ -220,27 +219,30 @@ def taskUltrasonicWind():
                 send(d)
             else:
                 logger.error('Failed to read ultrasonic anemometer. {}'.format(line))
-    except Exception as e:
-        logger.error(e)
+    except:
+        logger.error(traceback.format_exc())
 
 
 def taskOpticalRain():
     try:
-        '''s = serial.Serial('/dev/ttyUSBN',1200,timeout=1):
-            s.write('Q')
+        with serial.Serial('/dev/ttyUSB6',1200,timeout=1) as s:
+            s.write('A')
             line = []
-            for i in range(10):
-                r = s.read()
+            for i in range(30):
+                r = s.read(size=1)
                 if len(r):
-                    line.append(r)'''
+                    line.append(r)
+                if '\r' in line:
+                    break
+            line = ''.join(line).rstrip()
         d = {'tag':'OpticalRain',
              'ts':dt2ts(datetime.utcnow()),
-             'weather_condition':str(99*random()),
-             'instantaneous_mmphr':100*random(),
-             'accumulation_mm':1000*random()}
+             'weather_condition':line[0:2],
+             'instantaneous_mmphr':float(line[3:7]),
+             'accumulation_mm':float(line[8:15])}
         send(d)
-    except Exception as e:
-        logger.error(e)
+    except:
+        logger.error(traceback.format_exc())
 
 
 def taskBME280():
@@ -256,8 +258,9 @@ def taskBME280():
             send(d)
         else:
             logger.warning('Unable to read BME280')
-    except Exception as e:
-        logger.error(e)
+    except:
+        logger.warning('Exception in taskBME280():')
+        logger.error(traceback.format_exc())
 
 
 def taskHeartbeat():
@@ -274,7 +277,7 @@ def taskBBBWatchdog():
                 w = Watchdog(bus=bus)
                 w.reset()
             #print('Found watchdog on bus {}'.format(bus))
-        except Exception as e:
+        except:
             #logger.debug(e)
             pass
             # if I log it, I would have to specify which I2C bus to avoid false negative;
@@ -283,7 +286,7 @@ def taskBBBWatchdog():
 
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
-lcbme = LoopingCall(taskBME280)
+#lcbme = LoopingCall(taskBME280)
 #lcport = LoopingCall(taskPortWind)
 #lcstbd = LoopingCall(taskStarboardWind)
 lcultras = LoopingCall(taskUltrasonicWind)
@@ -291,11 +294,11 @@ lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
 lcwd = LoopingCall(taskBBBWatchdog)
 lcdaq.start(10)
-lcbme.start(60)
+#lcbme.start(60)
 #lcport.start(1)
 #lcstbd.start(1)
 lcultras.start(1)
-lcoptical.start(5)
+lcoptical.start(60)
 lchb.start(1,now=False)
 lcwd.start(60,now=False)
 
