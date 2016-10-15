@@ -39,11 +39,11 @@ if not exists(log_path):
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 fh = logging.handlers.RotatingFileHandler(join(log_path,'read_sensors.log'),
-                                          maxBytes=1e8,
+                                          maxBytes=1e7,
                                           backupCount=10)
 fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.WARNING)
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
 fh.setFormatter(formatter)
@@ -127,6 +127,11 @@ def taskDAQ():
                        'ir_mV':r[2]/1e-3,   # will be overwritten if LV read is successful
                        't_case_V':r[6],
                        't_dome_V':r[7]}
+
+#                bucket = {'tag':'BucketRain',
+#                          'ts':dt2ts(datetime.utcnow()),
+#                          'accumulation_mm':20*r[1]}    # map 0-2.5V to 0-50mm
+#                send(bucket)
             else:
                 logger.error('Unable to read the DAQ')
                 daqhv = None
@@ -301,7 +306,7 @@ def taskBBBWatchdog():
 
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
-#lcbme = LoopingCall(taskBME280)
+lcbme = LoopingCall(taskBME280)
 #lcport = LoopingCall(taskPortWind)
 #lcstbd = LoopingCall(taskStarboardWind)
 lcultras = LoopingCall(taskUltrasonicWind)
@@ -309,7 +314,7 @@ lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
 lcwd = LoopingCall(taskBBBWatchdog)
 lcdaq.start(10)
-#lcbme.start(60)
+lcbme.start(60)
 #lcport.start(1)
 #lcstbd.start(1)
 lcultras.start(1)

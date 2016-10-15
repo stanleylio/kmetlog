@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 #fh = logging.FileHandler(join(log_path,'log2txt.log'))
 fh = logging.handlers.RotatingFileHandler(join(log_path,'log2txt.log'),
-                                          maxBytes=1e8,
+                                          maxBytes=1e7,
                                           backupCount=5)
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()

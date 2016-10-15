@@ -37,11 +37,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 #fh = logging.FileHandler(join(log_path,'kmet_db.log'))
 fh = logging.handlers.RotatingFileHandler(join(log_path,'log2db.log'),
-                                          maxBytes=1e8,
+                                          maxBytes=1e7,
                                           backupCount=5)
 fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.WARNING)
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
 fh.setFormatter(formatter)

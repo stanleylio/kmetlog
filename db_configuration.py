@@ -11,23 +11,25 @@ from sqlalchemy import Table,Column,Integer,Float,String,Sequence
 # a list; one entry per table.
 # every entry is a dict(), with the 'name' of the table and the definition of 'columns'
 schema = [{'name':'PIR',
-      'columns':[('ir_mV',Float),('t_case_V',Float),('t_dome_V',Float)]},
-     {'name':'PSP',
-      'columns':[('psp_mV',Float)]},
-     {'name':'PAR',
-      'columns':[('par_V',Float)]},
-     {'name':'PortWind',
-      'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
-     {'name':'StarboardWind',
-      'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
-     {'name':'UltrasonicWind',
-      'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
-     {'name':'OpticalRain',
-      'columns':[('weather_condition',String),('instantaneous_mmphr',Float),('accumulation_mm',Float)]},
-     {'name':'BME280',
-      'columns':[('T',Float),('P',Float),('RH',Float)]},
-     # two more radiation shields and one more rain gauge
-     ]
+           'columns':[('ir_mV',Float),('t_case_V',Float),('t_dome_V',Float)]},
+          {'name':'PSP',
+           'columns':[('psp_mV',Float)]},
+          {'name':'PAR',
+           'columns':[('par_V',Float)]},
+          {'name':'PortWind',
+           'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
+          {'name':'StarboardWind',
+           'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
+          {'name':'UltrasonicWind',
+           'columns':[('apparent_speed_mps',Float),('apparent_direction_deg',Float)]},
+          {'name':'OpticalRain',
+           'columns':[('weather_condition',String),('instantaneous_mmphr',Float),('accumulation_mm',Float)]},
+          {'name':'BucketRain',
+           'columns':[('accumulation_mm',Float)]},
+          {'name':'BME280',
+           'columns':[('T',Float),('P',Float),('RH',Float)]},
+        # two more radiation shields and one more rain gauge
+        ]
 
 
 def get_list_of_sensors():
