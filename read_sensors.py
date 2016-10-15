@@ -128,10 +128,11 @@ def taskDAQ():
                        't_case_V':r[6],
                        't_dome_V':r[7]}
 
-#                bucket = {'tag':'BucketRain',
-#                          'ts':dt2ts(datetime.utcnow()),
-#                          'accumulation_mm':20*r[1]}    # map 0-2.5V to 0-50mm
-#                send(bucket)
+                # bucket rain gauge
+                bucket = {'tag':'BucketRain',
+                          'ts':dt2ts(datetime.utcnow()),
+                          'accumulation_mm':20*r[0]}    # map 0-2.5V to 0-50mm
+                send(bucket)
             else:
                 logger.error('Unable to read the DAQ')
                 daqhv = None
