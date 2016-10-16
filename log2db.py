@@ -24,11 +24,13 @@ tags = [t['name'] for t in db_configuration.schema]
 print(tags)
 
 
-db_path = '/var/logging/data'
+#db_path = '/var/logging/data'
+db_path = config['data_dir']
 if not exists(db_path):
     makedirs(db_path)
 
-log_path = '/var/logging/log'
+#log_path = '/var/logging/log'
+log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
 

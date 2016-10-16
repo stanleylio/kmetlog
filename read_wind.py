@@ -12,10 +12,15 @@ from datetime import datetime
 from os import makedirs
 from os.path import exists,join
 from service_discovery import taskServiceBroadcast
-import config
+from config import config
+from socket import gethostname
 
 
-log_path = '/var/logging/log'
+config = config[gethostname()]
+
+
+#log_path = '/var/logging/log'
+log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
 
@@ -69,8 +74,10 @@ def parseRMY(line):
     line = line.strip().split(',')
     if line[0] == '$WIMWV':
         tmp = line[5].split(' ')
+        #return [float(line[1]),float(line[3])*0.514444,
+        #        float(tmp[1]),float(tmp[2])*0.514444]
         return {'port':{'apparent_direction_deg':float(line[1]),
-                        'apparent_speed_mps':float(line[3])*0.514444},
+                        'apparent_speed_mps':float(line[3])*0.514444},  # kts to m/s
                 'starboard':{'apparent_direction_deg':float(tmp[1]),
                              'apparent_speed_mps':float(tmp[2])*0.514444}}
 
