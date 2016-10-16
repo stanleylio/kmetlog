@@ -4,3 +4,5 @@ log_dir = '/var/logging/log'
 
 kmet1_ip = '166.122.97.73'
 kmet1_port = 9002
+
+private_key_file = '/root/.ssh/id_rsa'

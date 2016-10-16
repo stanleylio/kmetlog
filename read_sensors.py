@@ -29,6 +29,7 @@ from os.path import exists,join
 #from r2t import r2t
 import config
 from drivers.watchdog import Watchdog
+import service_discovery
 
 
 log_path = '/var/logging/log'
@@ -76,8 +77,7 @@ def initdaqlv():
 
 
 logger.debug('binding 0MQ port...')
-#zmq_port = 'tcp://*:9002'
-zmq_port = 'tcp://*:' + str(config.kmet1_port)
+zmq_port = 'tcp://*:9002'
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind(zmq_port)
@@ -109,7 +109,7 @@ def taskDAQ():
     global daqhv
     global daqlv
     
-    par = psp = pir = None
+    pir = None
 
     try:
         if daqhv is None:
@@ -198,13 +198,17 @@ def taskStarboardWind():
     except Exception as e:
         logger.error(e)'''
 
+
 def taskUltrasonicWind():
     try:
         with serial.Serial('/dev/ttyUSB7',9600,timeout=0.1) as s:
             #s.write('M0!\r')       # the sensor is slow at processing commands...
             s.write('M')
+            s.flushOutput()
             s.write('0')
+            s.flushOutput()
             s.write('!')
+            s.flushOutput()
             s.write('\r')
             s.flushOutput()
             line = []
@@ -288,8 +292,8 @@ def taskHeartbeat():
     try:
         if datetime.utcnow() - last_transmitted > timedelta(seconds=60):
             send({})
-    except Exception as e:
-        logger.error(e)
+    except:
+        logger.error(traceback.format_exc())
 
 def taskBBBWatchdog():
     for bus in [1,2]:
@@ -301,8 +305,9 @@ def taskBBBWatchdog():
         except:
             #logger.debug(e)
             pass
+            # the WDT is either on bus 1 or bus 2, so there WILL be one exception
             # if I log it, I would have to specify which I2C bus to avoid false negative;
-            # if I don't log it, I risk missing real error...
+            # if I don't log it, I risk missing other exceptions...
 
 
 logger.debug('starting tasks...')
@@ -314,14 +319,16 @@ lcultras = LoopingCall(taskUltrasonicWind)
 lcoptical = LoopingCall(taskOpticalRain)
 lchb = LoopingCall(taskHeartbeat)
 lcwd = LoopingCall(taskBBBWatchdog)
+lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
 lcdaq.start(10)
 lcbme.start(60)
 #lcport.start(1)
 #lcstbd.start(1)
-lcultras.start(1)
+lcultras.start(1,now=False)
 lcoptical.start(60)
 lchb.start(1,now=False)
 lcwd.start(60,now=False)
+lcsb.start(60)
 
 logger.debug('starting reactor()...')
 reactor.run()
