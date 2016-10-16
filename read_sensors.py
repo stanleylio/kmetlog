@@ -17,8 +17,7 @@
 import sys,zmq,logging,json,time,traceback,serial
 import logging.handlers
 sys.path.append(r'../node')
-from helper import *
-from random import random
+from helper import dt2ts
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime,timedelta
@@ -26,10 +25,8 @@ from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
 from os import makedirs
 from os.path import exists,join
-#from r2t import r2t
-import config
+import config,service_discovery
 from drivers.watchdog import Watchdog
-import service_discovery
 
 
 log_path = '/var/logging/log'
@@ -118,19 +115,19 @@ def taskDAQ():
             r = daqhv.ReadAll()
             if r is not None:
                 par = {'tag':'PAR',
-                     'ts':dt2ts(datetime.utcnow()),
+                     'ts':dt2ts(),
                      'par_V':2*r[5]}    # PAR connects to DAQ via a V/2 voltage divider (0.1% precision)
                 send(par)
 
                 pir = {'tag':'PIR',
-                       'ts':dt2ts(datetime.utcnow()),
+                       'ts':dt2ts(),
                        'ir_mV':r[2]/1e-3,   # will be overwritten if LV read is successful
                        't_case_V':r[6],
                        't_dome_V':r[7]}
 
                 # bucket rain gauge
                 bucket = {'tag':'BucketRain',
-                          'ts':dt2ts(datetime.utcnow()),
+                          'ts':dt2ts(),
                           'accumulation_mm':20*r[0]}    # map 0-2.5V to 0-50mm
                 send(bucket)
             else:
@@ -148,19 +145,19 @@ def taskDAQ():
             r = daqlv.ReadAll()
             if r is not None:
                 psp = {'tag':'PSP',
-                     'ts':dt2ts(datetime.utcnow()),
+                     'ts':dt2ts(),
                      'psp_mV':r[5]/1e-3}
                 send(psp)
 
                 if pir is not None:
                     pir.update({'tag':'PIR',
-                         'ts':dt2ts(datetime.utcnow()),
+                         'ts':dt2ts(),
                          'ir_mV':r[2]/1e-3})
                 else:
                     # HV DAQ read failed previously
                     logger.warning('PIR thermistor read failed')
                     pir = {'tag':'PIR',
-                         'ts':dt2ts(datetime.utcnow()),
+                         'ts':dt2ts(),
                          'ir_mV':r[2]/1e-3,
                          't_case_V':float('nan'),
                          't_dome_V':float('nan')}
@@ -203,14 +200,9 @@ def taskUltrasonicWind():
     try:
         with serial.Serial('/dev/ttyUSB7',9600,timeout=0.1) as s:
             #s.write('M0!\r')       # the sensor is slow at processing commands...
-            s.write('M')
-            s.flushOutput()
-            s.write('0')
-            s.flushOutput()
-            s.write('!')
-            s.flushOutput()
-            s.write('\r')
-            s.flushOutput()
+            for c in 'M0!\r':
+                s.write(c)
+                s.flushOutput()
             line = []
             for i in range(20):     # should be ~17 chr
                 r = s.read(size=1)
@@ -223,7 +215,7 @@ def taskUltrasonicWind():
             line = ''.join(line).strip().split(' ')
             if '0' == line[0] and '*' == line[3][2]:    # '0' is the address of the sensor
                 d = {'tag':'UltrasonicWind',
-                     'ts':dt2ts(datetime.utcnow()),
+                     'ts':dt2ts(),
                      'apparent_speed_mps':float(line[1]),
                      'apparent_direction_deg':float(line[2])}
                 send(d)
@@ -248,7 +240,7 @@ def taskOpticalRain():
             line = ''.join(line).rstrip()
 
             d = {'tag':'OpticalRain',
-                 'ts':dt2ts(datetime.utcnow()),
+                 'ts':dt2ts(),
                  'weather_condition':line[0:2],
                  'instantaneous_mmphr':float(line[3:7]),
                  'accumulation_mm':float(line[8:15])}
@@ -276,7 +268,7 @@ def taskBME280():
         r = bme.read()
         if r is not None:
             d = {'tag':'BME280',
-                 'ts':dt2ts(datetime.utcnow()),
+                 'ts':dt2ts(),
                  'T':r['t'],
                  'P':r['p'],
                  'RH':r['rh']}
@@ -295,6 +287,7 @@ def taskHeartbeat():
     except:
         logger.error(traceback.format_exc())
 
+
 def taskBBBWatchdog():
     for bus in [1,2]:
         try:
@@ -312,22 +305,22 @@ def taskBBBWatchdog():
 
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
-lcbme = LoopingCall(taskBME280)
-#lcport = LoopingCall(taskPortWind)
-#lcstbd = LoopingCall(taskStarboardWind)
-lcultras = LoopingCall(taskUltrasonicWind)
-lcoptical = LoopingCall(taskOpticalRain)
-lchb = LoopingCall(taskHeartbeat)
-lcwd = LoopingCall(taskBBBWatchdog)
-lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
 lcdaq.start(10)
+lcbme = LoopingCall(taskBME280)
 lcbme.start(60)
+#lcport = LoopingCall(taskPortWind)
 #lcport.start(1)
+#lcstbd = LoopingCall(taskStarboardWind)
 #lcstbd.start(1)
+lcultras = LoopingCall(taskUltrasonicWind)
 lcultras.start(1,now=False)
+lcoptical = LoopingCall(taskOpticalRain)
 lcoptical.start(60)
+lchb = LoopingCall(taskHeartbeat)
 lchb.start(1,now=False)
+lcwd = LoopingCall(taskBBBWatchdog)
 lcwd.start(60,now=False)
+lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
 lcsb.start(60)
 
 logger.debug('starting reactor()...')
