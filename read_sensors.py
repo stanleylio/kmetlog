@@ -1,6 +1,5 @@
 # Periodically read the sensors and publish via TCP
 #
-#
 # Putting all polling in one process:
 #   Pros: all code in one place
 #       no multiple ports to subscribe to for clients

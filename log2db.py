@@ -70,8 +70,9 @@ socket = context.socket(zmq.SUB)
 #socket.connect('tcp://192.168.1.167:9002')
 
 for feed in config['subscribeto']:
-    socket.connect('tcp://' + feed + ':9002')
-
+    feed = 'tcp://' + feed + ':9002'
+    logger.debug('subscribing to ' + feed)
+    socket.connect(feed)
 
 socket.setsockopt_string(zmq.SUBSCRIBE,protocol_tag)
 poller = zmq.Poller()

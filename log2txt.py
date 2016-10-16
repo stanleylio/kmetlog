@@ -5,23 +5,29 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
-import zmq,logging,time,sys
+import zmq,logging,time,sys,traceback
 import logging.handlers
 from os import makedirs
 from os.path import exists,join
 from datetime import datetime
 sys.path.append('../node')
 from helper import dt2ts
-import config
+from config import config
+from socket import gethostname
+
+
+config = config[gethostname()]
 
 
 # product of this script, the raw text file
-data_path = '/var/logging/data'
+#data_path = '/var/logging/data'
+data_path = config['data_dir']
 if not exists(data_path):
     makedirs(data_path)
 
 # log file for debugging use, may or may not include data depending on log level
-log_path = '/var/logging/log'
+#log_path = '/var/logging/log'
+log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
 
@@ -45,7 +51,12 @@ logger.addHandler(ch)
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 #socket.connect('tcp://localhost:9002')
-socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
+#socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
+
+for feed in config['subscribeto']:
+    feed = 'tcp://' + feed + ':9002'
+    logger.debug('subscribing to ' + feed)
+    socket.connect(feed)
 
 # get everything
 socket.setsockopt_string(zmq.SUBSCRIBE,u'')
@@ -74,8 +85,8 @@ while True:
     except KeyboardInterrupt:
         logger.info('User interrupted')
         break
-    except Exception as e:
-        logger.warning(e)
+    except:
+        logger.warning(traceback.format_exc())
 
 f.close()
 socket.close()

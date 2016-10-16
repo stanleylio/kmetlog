@@ -1,3 +1,4 @@
+# the PIR stuff
 import math
 
 def r2t(R):
