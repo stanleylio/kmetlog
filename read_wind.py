@@ -22,7 +22,7 @@ if not exists(log_path):
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.handlers.RotatingFileHandler(join(log_path,'kmet-bbb-wind.log'),
+fh = logging.handlers.RotatingFileHandler(join(log_path,'read_wind.log'),
                                           maxBytes=1e7,
                                           backupCount=5)
 fh.setLevel(logging.INFO)

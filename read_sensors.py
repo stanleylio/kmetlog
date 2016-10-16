@@ -25,20 +25,25 @@ from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
 from os import makedirs
 from os.path import exists,join
-import config,service_discovery
+import service_discovery
+from config import config
 from drivers.watchdog import Watchdog
+from socket import gethostname
 
 
-log_path = '/var/logging/log'
+config = config[gethostname()]
+
+log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
+
 
 #logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 fh = logging.handlers.RotatingFileHandler(join(log_path,'read_sensors.log'),
                                           maxBytes=1e7,
-                                          backupCount=10)
+                                          backupCount=5)
 fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.WARNING)
@@ -76,8 +81,8 @@ def initdaqlv():
 logger.debug('binding 0MQ port...')
 zmq_port = 'tcp://*:9002'
 context = zmq.Context()
-socket = context.socket(zmq.PUB)
-socket.bind(zmq_port)
+zsocket = context.socket(zmq.PUB)
+zsocket.bind(zmq_port)
 logger.info('Broadcasting at {}'.format(zmq_port))
 
 
@@ -93,7 +98,7 @@ def send(d):
             s = ''
         global last_transmitted
         last_transmitted = datetime.utcnow()
-        socket.send_string(s)
+        zsocket.send_string(s)
     except:
         logger.error(traceback.format_exc())
 

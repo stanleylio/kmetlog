@@ -12,7 +12,12 @@ from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
 #from sqlalchemy.orm import sessionmaker
-import db_configuration,config
+import db_configuration
+from config import config
+from socket import gethostname
+
+
+config = config[gethostname()]
 
 
 tags = [t['name'] for t in db_configuration.schema]
@@ -55,14 +60,15 @@ context = zmq.Context()
 socket = context.socket(zmq.SUB)
 
 
-# ???
-# localhost, 192.168.1.109 (kmet-bbb), 192.168.1.167 (kmet-bbb-wind)
-socket.connect('tcp://localhost:9002')
+# localhost, 192.168.1.109 (kmet-bbb), 192.168.1.167 (kmet-bbb-wind)...
+#socket.connect('tcp://localhost:9002')
 #socket.connect('tcp://localhost:' + str(config.kmet1_port))
 #socket.connect('tcp://' + config.kmet1_ip + ':9002')
 #socket.connect('tcp://192.168.1.109:9002')
 #socket.connect('tcp://192.168.1.167:9002')
-# ???
+
+for feed in config['subscribeto']:
+    socket.connect('tcp://' + feed + ':9002')
 
 
 socket.setsockopt_string(zmq.SUBSCRIBE,protocol_tag)
@@ -70,7 +76,7 @@ poller = zmq.Poller()
 poller.register(socket,zmq.POLLIN)
 
 # database stuff
-engine = create_engine('sqlite:///'+db_file,echo=False)
+engine = create_engine('sqlite:///' + db_file,echo=False)
 meta = MetaData()
 meta.bind = engine
 
