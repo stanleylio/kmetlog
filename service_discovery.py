@@ -46,6 +46,8 @@ publishers = {}
 
 
 class Noname(DatagramProtocol):
+    _hostname = socket.gethostname()
+    
     def startProtocol(self):
         self.transport.setBroadcastAllowed(True)
     
@@ -54,25 +56,30 @@ class Noname(DatagramProtocol):
         #self.transport.write(data,(host,port))
         try:
             d = json.loads(data)
+
+            #if 'services' in d:
             if 'services' in d:
-                for s in d['services']:
-                    if 'kmet1' == s[0]:
-                        logging.debug('Found publisher: ' + str(s))
-                        ts = datetime.utcnow()
-                        publishers[d['hostname']] = (ts,s[1],s[2])
-                #print publishers
+                if d['hostname'] != self._hostname:   # exclude self
+                    for s in d['services']:
+                        if 'kmet1' == s[0]:
+                            logging.debug('Found publisher: ' + str(s))
+                            ts = datetime.utcnow()
+                            publishers[d['hostname']] = (ts,s[1],s[2])
+                    #print publishers
+                else:
+                    logging.debug('ignore self')
+            elif 'service_query' in d:
+                if 'kmet1' == d['service_query']:
+                    logging.debug('Responding to query...')
+                    proc = subprocess.Popen(['hostname -I'],stdout=subprocess.PIPE,shell=True)
+                    out,err = proc.communicate()
+                    ips = out.strip().split(' ')
+                    ips = filter(lambda x: x != '192.168.7.2',ips)[0]
 
-            if 'kmet1' == d.get('service_query',None):
-                logging.debug('Responding to query...')
-                proc = subprocess.Popen(['hostname -I'],stdout=subprocess.PIPE,shell=True)
-                out,err = proc.communicate()
-                ips = out.strip().split(' ')
-                ips = filter(lambda x: x != '192.168.7.2',ips)[0]
+                    d = {'hostname':self._hostname,'services':[['kmet1',ips,9002]]}
+                    line = json.dumps(d,separators=(',',':'))
 
-                d = {'hostname':socket.gethostname(),'services':[['kmet1',ips,9002]]}
-                line = json.dumps(d,separators=(',',':'))
-
-                self.transport.write(line,(host,port))
+                    self.transport.write(line,(host,port))
         except:
             logging.debug(traceback.format_exc())
 
