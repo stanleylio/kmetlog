@@ -24,7 +24,7 @@ from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
 from os import makedirs
 from os.path import exists,join
-import service_discovery
+#import service_discovery
 from config import config
 from drivers.watchdog import Watchdog
 from socket import gethostname
@@ -324,8 +324,8 @@ lchb = LoopingCall(taskHeartbeat)
 lchb.start(1,now=False)
 lcwd = LoopingCall(taskBBBWatchdog)
 lcwd.start(60,now=False)
-lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
-lcsb.start(60)
+#lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
+#lcsb.start(60)
 
 logger.debug('starting reactor()...')
 reactor.run()
