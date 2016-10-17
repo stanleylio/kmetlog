@@ -1,5 +1,9 @@
-# Periodically broadcast its own IP? or services?
-# service discovery at UDP 9005
+# Service discovery stuff
+#
+# To find other publishers, broadcast UDP at 9005 the json string (topic = 'kmet1' as example)
+#   {'service_query':'kmet1'}
+# Publishers that got this message would respond the json string (kmet-bbb as example)
+#   {'hostname':'kmet-bbb','services':[['kmet1','192.168.1.109',9002]]}
 #
 # Wouldn't need this if DHCP works.
 #
@@ -8,14 +12,16 @@
 # "every host is potentially interested in every other feed" - i.e., there's no longer fixed roles
 # of "publisher" and "logger"
 #
+# There's still the decision to be made: after discovery, which of those am I actually interested in?
+#
 # Stanley H.I Lio
 # hlio@hawaii.edu
 # Ocean Technology Group
 # SOEST, University of Hawaii
 # All Rights Reserved, 2016
-import sys,time,json,subprocess,traceback,socket,logging
-from datetime import datetime
+import sys,json,subprocess,traceback,socket,logging
 from twisted.internet.protocol import DatagramProtocol
+from datetime import datetime
 
 
 '''def taskServiceBroadcast():
@@ -42,10 +48,18 @@ from twisted.internet.protocol import DatagramProtocol
         logging.debug(traceback.format_exc())'''
 
 
-publishers = {}
+publishers = {}     # the current list of known publishers
 
 
-class Noname(DatagramProtocol):
+def getIP():
+    proc = subprocess.Popen(['hostname -I'],stdout=subprocess.PIPE,shell=True)
+    out,err = proc.communicate()
+    ips = out.strip().split(' ')
+    ips = filter(lambda x: x != '192.168.7.2',ips)[0]
+    return ips
+
+
+class ServiceDiscovery(DatagramProtocol):
     _hostname = socket.gethostname()
     
     def startProtocol(self):
@@ -57,7 +71,6 @@ class Noname(DatagramProtocol):
         try:
             d = json.loads(data)
 
-            #if 'services' in d:
             if 'services' in d:
                 if d['hostname'] != self._hostname:   # exclude self
                     for s in d['services']:
@@ -71,10 +84,7 @@ class Noname(DatagramProtocol):
             elif 'service_query' in d:
                 if 'kmet1' == d['service_query']:
                     logging.debug('Responding to query...')
-                    proc = subprocess.Popen(['hostname -I'],stdout=subprocess.PIPE,shell=True)
-                    out,err = proc.communicate()
-                    ips = out.strip().split(' ')
-                    ips = filter(lambda x: x != '192.168.7.2',ips)[0]
+                    ips = getIP()
 
                     d = {'hostname':self._hostname,'services':[['kmet1',ips,9002]]}
                     line = json.dumps(d,separators=(',',':'))
@@ -108,7 +118,7 @@ if '__main__' == __name__:
     #lcsb = LoopingCall(taskServiceBroadcast)
     #lcsb.start(period)
 
-    p = Noname()
+    p = ServiceDiscovery()
 
     lcsq = LoopingCall(taskServiceQuery)
     lcsq.start(1,now=False)
