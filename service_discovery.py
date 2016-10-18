@@ -71,23 +71,24 @@ class ServiceDiscovery(DatagramProtocol):
         try:
             d = json.loads(data)
 
-            if 'services' in d:
-                if d['hostname'] != self._hostname:   # exclude self
-                    for s in d['services']:
-                        if 'kmet1' == s[0]:
-                            logging.debug('Found publisher: ' + str(s))
-                            ts = datetime.utcnow()
-                            publishers[d['hostname']] = (ts,s[1],s[2])
-                    #print publishers
-                else:
+            if 'service_response' in d:
+                #if d['hostname'] != self._hostname:   # exclude self
+                for s in d['service_response']:
+                    if 'kmet1' == s[0]:
+                        logging.debug('Found publisher: ' + str(s))
+                        ts = datetime.utcnow()
+                        publishers[d['hostname']] = (ts,s[1],s[2])
+                #print publishers
+                #else:
                     #logging.debug('ignore self')
-                    pass
+                    #pass
             elif 'service_query' in d:
                 if 'kmet1' == d['service_query']:
                     logging.debug('Responding to query...')
-                    ips = getIP()
+                    ip = getIP()
 
-                    d = {'hostname':self._hostname,'services':[['kmet1',ips,9002]]}
+                    #if ip != host:  # the query originated from oneself
+                    d = {'hostname':self._hostname,'services':[['kmet1',ip,9002]]}
                     line = json.dumps(d,separators=(',',':'))
 
                     self.transport.write(line,(host,port))
