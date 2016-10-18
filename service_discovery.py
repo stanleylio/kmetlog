@@ -80,7 +80,8 @@ class ServiceDiscovery(DatagramProtocol):
                             publishers[d['hostname']] = (ts,s[1],s[2])
                     #print publishers
                 else:
-                    logging.debug('ignore self')
+                    #logging.debug('ignore self')
+                    pass
             elif 'service_query' in d:
                 if 'kmet1' == d['service_query']:
                     logging.debug('Responding to query...')
