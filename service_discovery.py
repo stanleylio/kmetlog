@@ -73,6 +73,7 @@ class ServiceDiscovery(DatagramProtocol):
 
             if 'service_response' in d:
                 #if d['hostname'] != self._hostname:   # exclude self
+                # basically it's not up to the driver to decide whether to list oneself as a publisher
                 for s in d['service_response']:
                     if 'kmet1' == s[0]:
                         logging.debug('Found publisher: ' + str(s))
