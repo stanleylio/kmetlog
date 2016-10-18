@@ -88,7 +88,7 @@ class ServiceDiscovery(DatagramProtocol):
                     ip = getIP()
 
                     #if ip != host:  # the query originated from oneself
-                    d = {'hostname':self._hostname,'services':[['kmet1',ip,9002]]}
+                    d = {'hostname':self._hostname,'service_response':[['kmet1',ip,9002]]}
                     line = json.dumps(d,separators=(',',':'))
 
                     self.transport.write(line,(host,port))
