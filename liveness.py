@@ -11,16 +11,19 @@ sys.path.append(r'../node')
 from helper import dt2ts,ts2dt
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
-import config
+from config import config
+from socket import gethostname
 
-#from tabulate import tabulate
+
+config = config[gethostname()]
 
 
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
 #socket.connect('tcp://localhost:9002')
 #socket.connect('tcp://localhost:' + str(config.kmet1_port))
-socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
+#socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
+socket.connect('tcp://' + gethostname() + ':9002')
 socket.setsockopt_string(zmq.SUBSCRIBE,u'kmet1_')
 
 poller = zmq.Poller()
@@ -53,7 +56,7 @@ def taskDisp():
         os.system('cls' if os.name == 'nt' else 'clear')
         #os.system('du -sh /root/logging/data /root/logging/log')
         #os.system('date && uptime')
-        print('Data from {}'.format(config.kmet1_ip))
+        #print('Data from {}'.format(config.kmet1_ip))
         for tag in sorted(D.keys()):
             ago = dt2ts(datetime.utcnow()) - D[tag]['ts']
             s = '{}, {:.1f}s ago'.format(tag,ago)

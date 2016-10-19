@@ -60,15 +60,12 @@ logger.addHandler(ch)
 protocol_tag = u'kmet1_'
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-
-
 # localhost, 192.168.1.109 (kmet-bbb), 192.168.1.167 (kmet-bbb-wind)...
 #socket.connect('tcp://localhost:9002')
 #socket.connect('tcp://localhost:' + str(config.kmet1_port))
 #socket.connect('tcp://' + config.kmet1_ip + ':9002')
 #socket.connect('tcp://192.168.1.109:9002')
 #socket.connect('tcp://192.168.1.167:9002')
-
 for feed in config['subscribeto']:
     feed = 'tcp://' + feed + ':9002'
     logger.debug('subscribing to ' + feed)

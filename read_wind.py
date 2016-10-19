@@ -8,10 +8,12 @@
 import sys,zmq,logging,json,time,traceback,serial
 import logging.handlers
 sys.path.append(r'../node')
-from datetime import datetime
+from helper import ts2dt,dt2ts
 from os import makedirs
 from os.path import exists,join
-from service_discovery import taskServiceBroadcast
+from twisted.internet.task import LoopingCall
+from twisted.internet import reactor
+#from service_discovery import taskServiceBroadcast
 from config import config
 from socket import gethostname
 
@@ -53,7 +55,7 @@ logger.debug('opening serial port...')
 s = serial.Serial('/dev/ttyUSB0',4800,timeout=3)    # should get one sample every second
 
 
-last_transmitted = datetime.utcnow()
+last_transmitted = ts2dt()
 def send(d):
     try:
         if 'tag' in d:
@@ -64,7 +66,7 @@ def send(d):
         else:
             s = ''
         global last_transmitted
-        last_transmitted = datetime.utcnow()
+        last_transmitted = ts2dt()
         socket.send_string(s)
     except:
         logger.error(traceback.format_exc())
@@ -84,14 +86,14 @@ def parseRMY(line):
 
 def taskCatchWind():
     try:
-        s.reset_input_buffer()
+        s.flushInput()
         line = s.readline()
         if len(line):
             logging.debug(line)
             
             r = parseRMY(line)
             if r is not None:
-                ts = datetime.utcnow()
+                ts = dt2ts()
                 d = {'tag':'PortWind',
                      'ts':ts,
                      'apparent_direction_deg':r['port']['apparent_direction_deg'],
@@ -109,8 +111,8 @@ def taskCatchWind():
 lccw = LoopingCall(taskCatchWind)
 lccw.start(0.1)
 
-lcsb = LoopingCall(taskServiceBroadcast)
-lcsb.start(60)
+#lcsb = LoopingCall(taskServiceBroadcast)
+#lcsb.start(60)
 
 
 reactor.run()
