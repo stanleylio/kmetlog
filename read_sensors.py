@@ -22,6 +22,7 @@ from twisted.internet import reactor
 from datetime import datetime,timedelta
 from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
+from adam4080 import ADAM4080
 from os import makedirs
 from os.path import exists,join
 #import service_discovery
@@ -128,6 +129,13 @@ def taskDAQ():
                        'ir_mV':r[2]/1e-3,   # will be overwritten if LV read is successful
                        't_case_V':r[6],
                        't_dome_V':r[7]}
+
+                # rotronics temperature
+                rt = {'tag':'Rotronics',
+                      'ts':dt2ts(),
+                      'T':r[1]*100.0-30.0,
+                      'RH':r[2]*100}
+                send(rt)
 
                 # bucket rain gauge
                 bucket = {'tag':'BucketRain',
@@ -266,6 +274,25 @@ def taskOpticalRain():
         logger.error(traceback.format_exc())
 
 
+def taskMisc():
+    try:
+        fc = ADAM4080('03','/dev/ttyUSB2',9600)
+        if not fc.CheckModuleName():
+            logger.critical('Cannot reach the ADAM Frequency Counter at 03.')
+            return
+        f0 = fc.ReadFrequency(0)
+        f1 = fc.ReadFrequency(1)
+        d = {'tag':'Misc',
+             'ts':dt2ts(),
+             'RadFan1_rpm':f0/2.0*60.0,     # rotronics humidity shield
+             'RadFan2_rpm':f1/2.0*60.0,     # RMY RTD shield
+             }
+        send(d)
+    except:
+        logger.warning('Exception in taskMisc():')
+        logger.error(traceback.format_exc())
+
+
 def taskBME280():
     try:
         bme = BME280_sl(bus=2,mode=BME280_OSAMPLE_16)
@@ -310,8 +337,8 @@ def taskBBBWatchdog():
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
 lcdaq.start(10)
-lcbme = LoopingCall(taskBME280)
-lcbme.start(60)
+#lcbme = LoopingCall(taskBME280)
+#lcbme.start(60,now=False)
 #lcport = LoopingCall(taskPortWind)
 #lcport.start(1)
 #lcstbd = LoopingCall(taskStarboardWind)
@@ -326,6 +353,9 @@ lcwd = LoopingCall(taskBBBWatchdog)
 lcwd.start(60,now=False)
 #lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
 #lcsb.start(60)
+lcmisc = LoopingCall(taskMisc)
+lcmisc.start(60,now=False)
+
 
 logger.debug('starting reactor()...')
 reactor.run()

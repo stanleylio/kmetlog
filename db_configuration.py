@@ -26,8 +26,14 @@ schema = [{'name':'PIR',
            'columns':[('weather_condition',String),('instantaneous_mmphr',Float),('accumulation_mm',Float)]},
           {'name':'BucketRain',
            'columns':[('accumulation_mm',Float)]},
+          {'name':'Rotronics',
+           'columns':[('T',Float),('RH',Float)]},
+          #{'name':'RMYRTD',
+          # 'columns':[('t_V',Float)]},
           {'name':'BME280',
            'columns':[('T',Float),('P',Float),('RH',Float)]},
+          {'name':'Misc',
+           'columns':[('RadFan1_rpm',Float),('RadFan2_rpm',Float)]},
         # two more radiation shields and one more rain gauge
         ]
 
