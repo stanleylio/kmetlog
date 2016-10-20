@@ -282,6 +282,8 @@ def taskMisc():
             return
         f0 = fc.ReadFrequency(0)
         f1 = fc.ReadFrequency(1)
+        # the radiation shield fan gives two pulses per revolution.
+        # so RPM = Hz/2*60
         d = {'tag':'Misc',
              'ts':dt2ts(),
              'RadFan1_rpm':f0/2.0*60.0,     # rotronics humidity shield
