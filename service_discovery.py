@@ -77,8 +77,11 @@ class ServiceDiscovery(DatagramProtocol):
                 for s in d['service_response']:
                     if 'kmet1' == s[0]:
                         logging.debug('Found publisher: ' + str(s))
-                        ts = datetime.utcnow()
-                        publishers[d['hostname']] = (ts,s[1],s[2])
+                        dt = datetime.utcnow()
+                        if s[1] == host:
+                            # no spoofing? now only the publisher can announce its own presence. that means
+                            # you can't have a device that only provide "service listing"...
+                            publishers[d['hostname']] = (dt,s[1],s[2])
                 #print publishers
                 #else:
                     #logging.debug('ignore self')
@@ -97,14 +100,12 @@ class ServiceDiscovery(DatagramProtocol):
             logging.debug(traceback.format_exc())
 
     def service_query(self,topic='kmet1'):
+        """Query everyone for the given topic via UDP broadcast.
+Whoever publishing this topic would respond with its own IP."""
         logging.debug('Broadcasting query...')
         line = json.dumps({'service_query':topic},separators=(',',':'))
         self.transport.write(line,('<broadcast>',9005))
             
-
-def taskServiceQuery():
-    p.service_query()
-
 
 if '__main__' == __name__:
     from twisted.internet.task import LoopingCall
@@ -123,8 +124,8 @@ if '__main__' == __name__:
 
     p = ServiceDiscovery()
 
-    lcsq = LoopingCall(taskServiceQuery)
-    lcsq.start(1,now=False)
+    lcsq = LoopingCall(p.service_query)
+    lcsq.start(period,now=False)
 
     reactor.listenUDP(9005,p)
     reactor.run()

@@ -1,3 +1,4 @@
+# For kmet-bbb only
 # Periodically read the sensors and publish via TCP
 #
 # Putting all polling in one process:
@@ -339,8 +340,6 @@ def taskBBBWatchdog():
 logger.debug('starting tasks...')
 lcdaq = LoopingCall(taskDAQ)
 lcdaq.start(10)
-#lcbme = LoopingCall(taskBME280)
-#lcbme.start(60,now=False)
 #lcport = LoopingCall(taskPortWind)
 #lcport.start(1)
 #lcstbd = LoopingCall(taskStarboardWind)
@@ -349,14 +348,16 @@ lcultras = LoopingCall(taskUltrasonicWind)
 lcultras.start(1,now=False)
 lcoptical = LoopingCall(taskOpticalRain)
 lcoptical.start(60)
-lchb = LoopingCall(taskHeartbeat)
-lchb.start(1,now=False)
-lcwd = LoopingCall(taskBBBWatchdog)
-lcwd.start(60,now=False)
 #lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
 #lcsb.start(60)
 lcmisc = LoopingCall(taskMisc)
 lcmisc.start(60,now=False)
+lcbme = LoopingCall(taskBME280)
+lcbme.start(60,now=False)
+lchb = LoopingCall(taskHeartbeat)
+lchb.start(1,now=False)
+lcwd = LoopingCall(taskBBBWatchdog)
+lcwd.start(60,now=False)
 
 
 logger.debug('starting reactor()...')
