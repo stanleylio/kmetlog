@@ -88,7 +88,7 @@ class ServiceDiscovery(DatagramProtocol):
             
             if 'service_query' in d:
                 if topic == d['service_query']:
-                    logging.debug('Responding to query...')
+                    logging.debug('Responding to query from ' + host)
                     ip = getIP()
 
                     d = {'hostname':self._hostname,'service_response':[[topic,ip,9002]]}
