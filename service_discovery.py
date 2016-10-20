@@ -115,7 +115,8 @@ if '__main__' == __name__:
     if len(sys.argv) > 1:
         period = float(sys.argv[1])
     else:
-        period = 60
+        print('psst: you can set the period to N seconds by "python service_discovery.py N"')
+        period = 1
 
     logging.basicConfig(level=logging.DEBUG)
 
