@@ -33,7 +33,7 @@ if not exists(log_path):
 
 logger = logging.getLogger(__name__)
 #logger = logging.getLogger('met_log_raw')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 #fh = logging.FileHandler(join(log_path,'log2txt.log'))
 fh = logging.handlers.RotatingFileHandler(join(log_path,'log2txt.log'),
                                           maxBytes=1e7,
