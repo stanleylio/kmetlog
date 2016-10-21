@@ -21,15 +21,13 @@ from helper import dt2ts
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime,timedelta
-from drivers.Adafruit_BME280 import *
 from adam4018 import ADAM4018
-from adam4080 import ADAM4080
 from os import makedirs
 from os.path import exists,join
 #import service_discovery
 from config import config
-from drivers.watchdog import Watchdog
 from socket import gethostname
+from misctask import taskBME280,taskWDT,taskMisc
 
 
 config = config[gethostname()]
@@ -39,15 +37,15 @@ if not exists(log_path):
     makedirs(log_path)
 
 
-#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 fh = logging.handlers.RotatingFileHandler(join(log_path,'read_sensors.log'),
                                           maxBytes=1e7,
                                           backupCount=5)
-fh.setLevel(logging.INFO)
+fh.setLevel(logging.WARNING)
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
+ch.setLevel(logging.DEBUG)
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
 fh.setFormatter(formatter)
@@ -97,7 +95,7 @@ def send(d):
             logger.debug(s)
         else:
             s = ''
-        global last_transmitted
+        global last_transmitted     # annoying.
         last_transmitted = datetime.utcnow()
         zsocket.send_string(s)
     except:
@@ -176,7 +174,7 @@ def taskDAQ():
                          't_dome_V':float('nan')}
                 send(pir)
 
-                # and what if THIS failed? TODO
+                # and what if THIS failed? hardly ever, but still. TODO
             else:
                 logger.error('Unable to read the DAQ (LV)')
                 daqlv = None
@@ -275,45 +273,6 @@ def taskOpticalRain():
         logger.error(traceback.format_exc())
 
 
-def taskMisc():
-    try:
-        fc = ADAM4080('03','/dev/ttyUSB2',9600)
-        if not fc.CheckModuleName():
-            logger.critical('Cannot reach the ADAM Frequency Counter at 03.')
-            return
-        f0 = fc.ReadFrequency(0)
-        f1 = fc.ReadFrequency(1)
-        # the radiation shield fan gives two pulses per revolution.
-        # so RPM = Hz/2*60
-        d = {'tag':'Misc',
-             'ts':dt2ts(),
-             'RadFan1_rpm':f0/2.0*60.0,     # rotronics humidity shield
-             'RadFan2_rpm':f1/2.0*60.0,     # RMY RTD shield
-             }
-        send(d)
-    except:
-        logger.warning('Exception in taskMisc():')
-        logger.error(traceback.format_exc())
-
-
-def taskBME280():
-    try:
-        bme = BME280_sl(bus=2,mode=BME280_OSAMPLE_16)
-        r = bme.read()
-        if r is not None:
-            d = {'tag':'BME280',
-                 'ts':dt2ts(),
-                 'T':r['t'],
-                 'P':r['p'],
-                 'RH':r['rh']}
-            send(d)
-        else:
-            logger.warning('Unable to read BME280')
-    except:
-        logger.warning('Exception in taskBME280():')
-        logger.error(traceback.format_exc())
-
-
 def taskHeartbeat():
     try:
         if datetime.utcnow() - last_transmitted > timedelta(seconds=60):
@@ -322,42 +281,18 @@ def taskHeartbeat():
         logger.error(traceback.format_exc())
 
 
-def taskBBBWatchdog():
-    for bus in [1,2]:
-        try:
-            for i in range(3):
-                w = Watchdog(bus=bus)
-                w.reset()
-            #print('Found watchdog on bus {}'.format(bus))
-        except:
-            #logger.debug(e)
-            pass
-            # the WDT is either on bus 1 or bus 2, so there WILL be one exception
-            # if I log it, I would have to specify which I2C bus to avoid false negative;
-            # if I don't log it, I risk missing other exceptions...
-
-
 logger.debug('starting tasks...')
-lcdaq = LoopingCall(taskDAQ)
-lcdaq.start(10)
+LoopingCall(taskDAQ).start(10)
 #lcport = LoopingCall(taskPortWind)
 #lcport.start(1)
 #lcstbd = LoopingCall(taskStarboardWind)
 #lcstbd.start(1)
-lcultras = LoopingCall(taskUltrasonicWind)
-lcultras.start(1,now=False)
-lcoptical = LoopingCall(taskOpticalRain)
-lcoptical.start(60)
-#lcsb = LoopingCall(service_discovery.taskServiceBroadcast)
-#lcsb.start(60)
-lcmisc = LoopingCall(taskMisc)
-lcmisc.start(60,now=False)
-lcbme = LoopingCall(taskBME280)
-lcbme.start(60,now=False)
-lchb = LoopingCall(taskHeartbeat)
-lchb.start(1,now=False)
-lcwd = LoopingCall(taskBBBWatchdog)
-lcwd.start(60,now=False)
+LoopingCall(taskUltrasonicWind).start(1,now=False)
+LoopingCall(taskOpticalRain).start(60)
+LoopingCall(lambda: taskMisc(send)).start(60,now=False)
+LoopingCall(lambda: taskBME280(send)).start(60,now=False)
+LoopingCall(taskWDT).start(121,now=False)
+LoopingCall(taskHeartbeat).start(6,now=False)
 
 
 logger.debug('starting reactor()...')
