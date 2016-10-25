@@ -135,6 +135,21 @@ Whoever publishing this topic would respond with its own IP."""
             pl.append([k,'{}:{}'.format(host[1],host[2])])
         return pl
 
+def ha():
+    sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    sock.settimeout(max_response_time + 1)
+    sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
+    print('waiting for response...')
+    try:
+        d,h = sock.recvfrom(1024)
+        logging.debug(d + ' from ' + repr(h))
+        return json.loads(d)
+    except socket.timeout:
+        logging.warning('Daemon not running. Try "python service_discovery.py 1" first.')
+    except:
+        logging.error(traceback.format_exc())
+        return None
+
 
 if '__main__' == __name__:
     from twisted.internet import reactor
@@ -149,13 +164,4 @@ if '__main__' == __name__:
         p.service_query()
         reactor.run()
     elif sys.argv[1] == 'q':
-        sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        sock.settimeout(max_response_time + 1)
-        sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
-        print('waiting for response...')
-        try:
-            d,h = sock.recvfrom(1024)
-        except socket.timeout:
-            print('Daemon not running. try "python service_discovery.py 1"')
-        print d
-        print h
+        print ha()
