@@ -33,7 +33,7 @@ from twisted.internet.protocol import DatagramProtocol
 
 topic = 'kmet1'
 best_before = 5*60  # second. a service listing is considered stale if it was last updated over this many seconds ago
-max_response_time = 1   # # of seconds to wait for service providers to respond
+max_response_time = 2   # # of seconds to wait for service providers to respond
 
 
 def getIP():
