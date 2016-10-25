@@ -1,34 +1,45 @@
 # Service discovery stuff
-# Three functions:
-#   It respond to requests from other node looking for the 'kmet1' service;
-#   it listens for service announcements from other hosts and maintain a list of hosts;
-#   It provide a list of known hosts offering the 'kmet1' service for processes on this machine.
+#
+# To run this as a daemon:
+#   python service_discovery.py
+# To initiate a service search:
+#   python service_discovery.py q
+#
+# Three jobs:
+#   It responds to requests from other hosts looking for the 'kmet1' service;
+#   It listens for service announcements from other hosts and maintains a list of hosts wiath that service;
+#   It serves that list of hosts offering the 'kmet1' service for processes on this machine (though there's
+#       nothing stopping the other hosts from querying for that list).
+#
+# ... wouldn't need this if DNS works...
 #
 # Run this script directly and it would handle the query-respond as a daemon;
 # Run this script with the argument 'q' and it would return the list of known hosts offering
 # the 'kmet1' service.
 #
-# The Protocol:
-# To find other publishers, broadcast UDP at 9005 the json string (using topic='kmet1' as example)
+# The Protocol (on UDP 9005):
+# To find other hosts, broadcast the string (using topic='kmet1' as example)
 #   {"service_query":"kmet1"}
-# Publishers that got this message would respond the json string (kmet-bbb as example)
+# Publishers that got this message would respond with the string (using kmet-bbb as example)
 #   {"hostname":"kmet-bbb","services":[["kmet1","192.168.1.109",9002]]}
-# To see the list of services known to this host, send
+# To see the list of hosts with the kmet1 service, send
 #   {"get_service_listing":"kmet1"}
 #
-# ... wouldn't need all this if the DNS works...
+# - - - - -
+# A publisher can publish multiple topics at multiple ports, and a subscriber can subscribe
+# to multiple topics from multiple publishers.
+# Basically N-to-N: "every host has sensor feeds that other hosts may read", and "every host
+# is potentially interested in other feeds" - i.e. there's no longer fixed roles of
+# "publisher" and "data logger".
 #
-# There's no limit to complexity - a publisher can publish multiple topics at multiple ports, and
-# a subscriber can be subscribed to multiple topics from multiple publishers.
-# Basically full-blown N-to-N, "every host has potentially sensor feeds that other hosts can read", and
-# "every host is potentially interested in every other feed" - i.e., there's no longer fixed roles
-# of "publisher" and "data logger".
+# Yet there's still the decision to be made: after discovery, which of those am I actually
+# interested in?
 #
-# There's still the decision to be made: after discovery, which of those am I actually interested in?
+# In principle, this host does not need to maintain an up-to-date list of known hosts at all
+# time - you can initiate a query broadcast when such list is needed. Small delay, small
+# price to pay.
 #
-# In principle, to see what services are out there you can just send a query broadcast and wait for response.
-# So no daemon and dictionary of services and fresh/stale detection needed.
-# But the services would still need to host a daemon to listen for query broadcast.
+# The host would still need a daemon to respond to query broadcasts from other hosts.
 #
 #
 # Stanley H.I. Lio
@@ -41,7 +52,7 @@ from twisted.internet.protocol import DatagramProtocol
 
 
 topic = 'kmet1'
-best_before = 5*60  # second. a service listing is considered stale if it was last updated over this many seconds ago
+best_before = 5*60      # second. a service listing is considered stale if it was last updated over this many seconds ago
 max_response_time = 2   # # of seconds to wait for service providers to respond
 
 
@@ -103,7 +114,7 @@ class ServiceDiscovery(DatagramProtocol):
 
                     #print self._publishers
 
-            if d.get('service_query',None) == topic:
+            elif d.get('service_query',None) == topic:
                 logging.debug('Responding to query from ' + host)
                 ip = getIP()
 
@@ -114,7 +125,7 @@ class ServiceDiscovery(DatagramProtocol):
 
                 self.transport.write(line,(host,port))
 
-            if d.get('get_service_listing',None) == topic:
+            elif d.get('get_service_listing',None) == topic:
                 self.service_query()    # query service providers only on demand
                 # problem is, the service_response won't get processed until this returns
                 # so don't sleep, use callLater()
@@ -125,6 +136,9 @@ class ServiceDiscovery(DatagramProtocol):
                     tmp = self.get_publisher_list()
                     self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
                 reactor.callLater(max_response_time,tmp)
+            else:
+                #logging.debug(data)
+                pass
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
@@ -151,6 +165,7 @@ Whoever publishing this topic would respond with its own IP."""
         return pl
 
 def get_publisher_list():
+    """Ask the local daemon for a list of known hosts with the kmet1 service"""
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     sock.settimeout(max_response_time + 1)
     sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
