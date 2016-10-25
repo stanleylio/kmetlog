@@ -123,7 +123,6 @@ Whoever publishing this topic would respond with its own IP."""
 
     def get_publisher_list(self):
         # remove stale entries
-        # tricky. this won't work if the time limit is bigger than the query broadcast interval.
         for k in self._publishers.keys():
             host = self._publishers[k]
             if time.time() - host[0] > best_before:
@@ -145,6 +144,11 @@ if '__main__' == __name__:
     #logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) == 1:
+        p = ServiceDiscovery()
+        reactor.listenUDP(9005,p)
+        p.service_query()
+        reactor.run()
+    else:
         sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         sock.settimeout(max_response_time + 1)
         sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
@@ -155,11 +159,3 @@ if '__main__' == __name__:
             print('Daemon not running. try "python service_discovery.py 1"')
         print d
         print h
-    else:
-
-        period = float(sys.argv[1])
-
-        p = ServiceDiscovery()
-        reactor.listenUDP(9005,p)
-        p.service_query()
-        reactor.run()
