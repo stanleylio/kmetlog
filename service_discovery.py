@@ -33,10 +33,7 @@ from twisted.internet.protocol import DatagramProtocol
 
 topic = 'kmet1'
 best_before = 5*60  # second. a service listing is considered stale if it was last updated over this many seconds ago
-min_period = 5      # query broadcast interval when there's no known service
-max_period = 60     # query broadcast interval when there is at least one known service
-
-assert max_period < best_before
+max_response_time = 1   # # of seconds to wait for service providers to respond
 
 
 def getIP():
@@ -109,6 +106,8 @@ class ServiceDiscovery(DatagramProtocol):
                 self.transport.write(line,(host,port))
 
             if d.get('get_service_listing',None) == topic:
+                self.service_query()    # query service providers only on demand (no need for LoopingCall())
+                time.sleep(max_response_time)
                 tmp = self.get_publisher_list()
                 self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
         except:
@@ -147,7 +146,7 @@ if '__main__' == __name__:
 
     if len(sys.argv) == 1:
         sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        sock.settimeout(5)
+        sock.settimeout(max_response_time + 1)
         sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
         print('waiting for response...')
         try:
@@ -156,20 +155,11 @@ if '__main__' == __name__:
             print('Daemon not running. try "python service_discovery.py 1"')
         print d
         print h
-        sys.exit()
+    else:
 
-    # - - -
+        period = float(sys.argv[1])
 
-    period = float(sys.argv[1])
-
-    p = ServiceDiscovery()
-    reactor.listenUDP(9005,p)
-
-    def haha():
+        p = ServiceDiscovery()
+        reactor.listenUDP(9005,p)
         p.service_query()
-        if len(p.get_publisher_list()) <= 0:
-            reactor.callLater(min_period,haha)
-        else:
-            reactor.callLater(max_period,haha)
-    haha()
-    reactor.run()
+        reactor.run()
