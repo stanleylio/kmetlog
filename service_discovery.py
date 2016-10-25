@@ -148,7 +148,7 @@ if '__main__' == __name__:
         reactor.listenUDP(9005,p)
         p.service_query()
         reactor.run()
-    else:
+    elif sys.argv[1] == 'q':
         sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         sock.settimeout(max_response_time + 1)
         sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
