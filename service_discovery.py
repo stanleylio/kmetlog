@@ -106,10 +106,16 @@ class ServiceDiscovery(DatagramProtocol):
                 self.transport.write(line,(host,port))
 
             if d.get('get_service_listing',None) == topic:
-                self.service_query()    # query service providers only on demand (no need for LoopingCall())
-                time.sleep(max_response_time)
-                tmp = self.get_publisher_list()
-                self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
+                self.service_query()    # query service providers only on demand
+                # problem is, the service_response won't get processed until this returns
+                # so don't sleep, use callLater()
+                #time.sleep(max_response_time)
+                #tmp = self.get_publisher_list()
+                #self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
+                def tmp():
+                    tmp = self.get_publisher_list()
+                    self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
+                reactor.callLater(max_response_time,tmp)
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
@@ -135,7 +141,7 @@ Whoever publishing this topic would respond with its own IP."""
             pl.append([k,'{}:{}'.format(host[1],host[2])])
         return pl
 
-def ha():
+def get_publisher_list():
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     sock.settimeout(max_response_time + 1)
     sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
@@ -164,4 +170,4 @@ if '__main__' == __name__:
         p.service_query()
         reactor.run()
     elif sys.argv[1] == 'q':
-        print ha()
+        print get_publisher_list()
