@@ -1,5 +1,14 @@
 # Service discovery stuff
+# Three functions:
+#   It respond to requests from other node looking for the 'kmet1' service;
+#   it listens for service announcements from other hosts and maintain a list of hosts;
+#   It provide a list of known hosts offering the 'kmet1' service for processes on this machine.
 #
+# Run this script directly and it would handle the query-respond as a daemon;
+# Run this script with the argument 'q' and it would return the list of known hosts offering
+# the 'kmet1' service.
+#
+# The Protocol:
 # To find other publishers, broadcast UDP at 9005 the json string (using topic='kmet1' as example)
 #   {"service_query":"kmet1"}
 # Publishers that got this message would respond the json string (kmet-bbb as example)
@@ -7,7 +16,7 @@
 # To see the list of services known to this host, send
 #   {"get_service_listing":"kmet1"}
 #
-# Wouldn't need this if DHCP/UPnP works.
+# ... wouldn't need all this if the DNS works...
 #
 # There's no limit to complexity - a publisher can publish multiple topics at multiple ports, and
 # a subscriber can be subscribed to multiple topics from multiple publishers.
