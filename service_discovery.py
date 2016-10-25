@@ -4,10 +4,10 @@
 #   {"service_query":"kmet1"}
 # Publishers that got this message would respond the json string (kmet-bbb as example)
 #   {"hostname":"kmet-bbb","services":[["kmet1","192.168.1.109",9002]]}
-# To see the list of services that this host knows of, send
+# To see the list of services known to this host, send
 #   {"get_service_listing":"kmet1"}
 #
-# Wouldn't need this if DHCP works.
+# Wouldn't need this if DHCP/UPnP works.
 #
 # There's no limit to complexity - a publisher can publish multiple topics at multiple ports, and
 # a subscriber can be subscribed to multiple topics from multiple publishers.
@@ -16,6 +16,11 @@
 # of "publisher" and "data logger".
 #
 # There's still the decision to be made: after discovery, which of those am I actually interested in?
+#
+# In principle, to see what services are out there you can just send a query broadcast and wait for response.
+# So no daemon and dictionary of services and fresh/stale detection needed.
+# But the services would still need to host a daemon to listen for query broadcast.
+#
 #
 # Stanley H.I. Lio
 # hlio@hawaii.edu
@@ -27,6 +32,11 @@ from twisted.internet.protocol import DatagramProtocol
 
 
 topic = 'kmet1'
+best_before = 5*60  # second. a service listing is considered stale if it was last updated over this many seconds ago
+min_period = 5      # query broadcast interval when there's no known service
+max_period = 60     # query broadcast interval when there is at least one known service
+
+assert max_period < best_before
 
 
 def getIP():
@@ -114,9 +124,10 @@ Whoever publishing this topic would respond with its own IP."""
 
     def get_publisher_list(self):
         # remove stale entries
+        # tricky. this won't work if the time limit is bigger than the query broadcast interval.
         for k in self._publishers.keys():
             host = self._publishers[k]
-            if time.time() - host[0] > 90:   # seconds
+            if time.time() - host[0] > best_before:
                  del self._publishers[k]
         
         # create a list
@@ -128,31 +139,37 @@ Whoever publishing this topic would respond with its own IP."""
 
 
 if '__main__' == __name__:
-    from twisted.internet.task import LoopingCall
     from twisted.internet import reactor
     import sys
 
     logging.basicConfig(level=logging.DEBUG)
     #logging.basicConfig(level=logging.INFO)
 
-    period = 1
-    if len(sys.argv) > 1:
-        try:
-            period = float(sys.argv[1])
-        except:
-            period = None
-
-    if period is not None:
-        p = ServiceDiscovery()
-
-        LoopingCall(p.service_query).start(period,now=False)
-        #LoopingCall(p.get_publisher_list).start(2,now=True)
-
-        reactor.listenUDP(9005,p)
-        reactor.run()
-    else:
+    if len(sys.argv) == 1:
         sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        sock.settimeout(5)
         sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
-        d,h = sock.recvfrom(1024)
+        print('waiting for response...')
+        try:
+            d,h = sock.recvfrom(1024)
+        except socket.timeout:
+            print('Daemon not running. try "python service_discovery.py 1"')
         print d
         print h
+        sys.exit()
+
+    # - - -
+
+    period = float(sys.argv[1])
+
+    p = ServiceDiscovery()
+    reactor.listenUDP(9005,p)
+
+    def haha():
+        p.service_query()
+        if len(p.get_publisher_list()) <= 0:
+            reactor.callLater(min_period,haha)
+        else:
+            reactor.callLater(max_period,haha)
+    haha()
+    reactor.run()
