@@ -12,6 +12,7 @@ from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
 #from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import NoSuchTableError
 import db_configuration
 from config import config
 from socket import gethostname
@@ -104,6 +105,10 @@ while True:
                     logger.debug('unknown message: {},{}'.format(msg[0],msg[1]))
             except ValueError:
                 logger.warning(traceback.format_exc())
+            except NoSuchTableError:
+                logger.error('No such table: {}'.format(d['tag']))
+            except:
+                logger.error(traceback.format_exc())
     except KeyboardInterrupt:
         logger.info('User interrupted')
         break
