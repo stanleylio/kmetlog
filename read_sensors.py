@@ -60,7 +60,7 @@ def initdaqhv():
     if not daq.CheckModuleName():
         logger.critical('Cannot reach the DAQ (HV) at 01.')
         return None
-    if not any([daq.SetInputRange(2.5) for tmp in range(3)]):
+    if not any([daq.SetInputRange(2.5) for tmp in range(3)]):   # any() is short-circuited
         logger.critical('Unable to set DAQ (HV) input range.')
         return None
     return daq
@@ -292,7 +292,7 @@ LoopingCall(taskOpticalRain).start(60)
 LoopingCall(lambda: taskMisc(send)).start(60,now=False)
 LoopingCall(lambda: taskBME280(send)).start(60,now=False)
 LoopingCall(taskWDT).start(121,now=False)
-LoopingCall(taskHeartbeat).start(6,now=False)
+LoopingCall(taskHeartbeat).start(10,now=False)
 
 
 logger.debug('starting reactor()...')
@@ -300,3 +300,4 @@ reactor.run()
 del daqhv
 del daqlv
 logging.info('Terminated')
+
