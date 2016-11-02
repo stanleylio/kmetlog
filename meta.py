@@ -11,7 +11,7 @@ from helper import dt2ts
 logging.basicConfig()
 
 
-with open('/var/logging/log/spaceusage.log') as f:
+with open('/var/kmetlog/log/spaceusage.log') as f:
     D = {}
     ts = None
     for line in f:
@@ -33,21 +33,28 @@ with open('/var/logging/log/spaceusage.log') as f:
 
 
 for k in D.keys():
-    d = zip(*D[k])
-    tmp = [tmp[0] - tmp[1] for tmp in zip(d[1][1:],d[1][0:-1])]
-    tmp = float(sum(tmp))/len(tmp)
-    if tmp <= 1024:
-        rate = tmp
-        linelabel = '{:.1f} kB/hour'.format(rate)
-    else:
-        rate = tmp/1024.
-        linelabel = '{:.1f} MB/hour'.format(rate)
-    
-    plot_path = join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png')
-    if not exists(plot_path):
-        plot_path = join('/var/logging/log','space_' + basename(k) + '.png')
-    plot_time_series(d[0],[v/1024. for v in d[1]],\
-                     plot_path,\
-                     title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
-                     linelabel=linelabel,
-                     markersize=8)
+    try:
+        print k
+        
+        d = zip(*D[k])
+        tmp = [tmp[0] - tmp[1] for tmp in zip(d[1][1:],d[1][0:-1])]
+        tmp = float(sum(tmp))/len(tmp)
+        if tmp <= 1024:
+            rate = tmp
+            linelabel = '{:.1f} kB/hour'.format(rate)
+        else:
+            rate = tmp/1024.
+            linelabel = '{:.1f} MB/hour'.format(rate)
+        
+        plot_path = join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png')
+        if not exists(plot_path):
+            plot_path = join('/var/kmetlog/log','space_' + basename(k) + '.png')
+        plot_time_series(d[0],[v/1024. for v in d[1]],\
+                         plot_path,\
+                         title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
+                         linelabel=linelabel,
+                         markersize=8)
+    except KeyboardInterrupt:
+        break
+    except:
+        traceback.print_exc()
