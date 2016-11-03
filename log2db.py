@@ -82,7 +82,7 @@ poller.register(socket,zmq.POLLIN)
 dbname = 'kmetlog'
 engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
                        pool_recycle=3600,
-                       echo=True)
+                       echo=False)
 engine.execute('CREATE DATABASE IF NOT EXISTS ' + dbname)
 engine.execute('USE ' + dbname)
 dbstuff.Base.metadata.create_all(engine)
