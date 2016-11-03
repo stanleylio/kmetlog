@@ -10,7 +10,7 @@ import logging.handlers
 from os import makedirs
 from os.path import exists,join
 import json,traceback
-from sqlalchemy import create_engine,Table,MetaData
+from sqlalchemy import create_engine,Table
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import NoSuchTableError
 from config import config
@@ -27,16 +27,16 @@ config = config[gethostname()]
 
 
 #db_path = '/var/kmetlog/data'
-db_path = config['data_dir']
-if not exists(db_path):
-    makedirs(db_path)
+#db_path = config['data_dir']
+#if not exists(db_path):
+#    makedirs(db_path)
 
 #log_path = '/var/kmetlog/log'
 log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
 
-db_file = join(db_path,'met.db')
+#db_file = join(db_path,'met.db')
 
 
 #logging.basicConfig()
