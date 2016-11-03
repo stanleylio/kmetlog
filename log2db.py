@@ -11,26 +11,27 @@ from os import makedirs
 from os.path import exists,join
 import json,traceback
 from sqlalchemy import create_engine,Table,MetaData
-#from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import NoSuchTableError
-import db_configuration
 from config import config
 from socket import gethostname
+#import db_configuration
+import dbstuff
 
 
 config = config[gethostname()]
 
 
-tags = [t['name'] for t in db_configuration.schema]
-print(tags)
+#tags = [t['name'] for t in db_configuration.schema]
+#print(tags)
 
 
-#db_path = '/var/logging/data'
+#db_path = '/var/kmetlog/data'
 db_path = config['data_dir']
 if not exists(db_path):
     makedirs(db_path)
 
-#log_path = '/var/logging/log'
+#log_path = '/var/kmetlog/log'
 log_path = config['log_dir']
 if not exists(log_path):
     makedirs(log_path)
@@ -77,9 +78,25 @@ poller = zmq.Poller()
 poller.register(socket,zmq.POLLIN)
 
 # database stuff
-engine = create_engine('sqlite:///' + db_file,echo=False)
-meta = MetaData()
-meta.bind = engine
+#engine = create_engine('sqlite:///' + db_file,echo=False)
+dbname = 'kmetlog'
+engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
+                       pool_recycle=3600,
+                       echo=True)
+engine.execute('CREATE DATABASE IF NOT EXISTS ' + dbname)
+engine.execute('USE ' + dbname)
+dbstuff.Base.metadata.create_all(engine)
+meta = dbstuff.Base.metadata
+#meta = MetaData()
+#meta.bind = engine
+
+Session = sessionmaker()
+Session.configure(bind=engine)
+session = Session()
+
+tags = [table.name for table in meta.sorted_tables]
+#print tags
+#exit()
 
 logger.info('Logger is ready')
 
@@ -93,6 +110,7 @@ while True:
             msg = msg.split(',',1)
             try:
                 d = json.loads(msg[1])
+            
                 if d['tag'] in tags:
                     #print(d)
 
