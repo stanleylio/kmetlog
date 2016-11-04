@@ -2,6 +2,7 @@ import sys,socket
 from os.path import expanduser
 sys.path.append(expanduser('~'))
 from node.send2server import post
+from os.path import expanduser
 
 
 m = socket.gethostname()
@@ -15,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 dbname = 'kmetlog'
-engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
+engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost',
                        pool_recycle=3600,
                        echo=False)
 engine.execute('USE ' + dbname)
