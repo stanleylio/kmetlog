@@ -80,7 +80,8 @@ poller.register(socket,zmq.POLLIN)
 # database stuff
 #engine = create_engine('sqlite:///' + db_file,echo=False)
 dbname = 'kmetlog'
-engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
+from os.path import expanduser
+engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost',
                        pool_recycle=3600,
                        echo=False)
 engine.execute('CREATE DATABASE IF NOT EXISTS ' + dbname)
