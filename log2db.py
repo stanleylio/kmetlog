@@ -51,7 +51,7 @@ fh = logging.handlers.RotatingFileHandler(join(log_path,'log2db.log'),
                                           backupCount=5)
 fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
+ch.setLevel(logging.DEBUG)
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
 fh.setFormatter(formatter)
