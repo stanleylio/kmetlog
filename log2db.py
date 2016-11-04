@@ -17,6 +17,7 @@ from config import config
 from socket import gethostname
 #import db_configuration
 import dbstuff
+from os.path import expanduser
 
 
 config = config[gethostname()]
@@ -80,7 +81,6 @@ poller.register(socket,zmq.POLLIN)
 # database stuff
 #engine = create_engine('sqlite:///' + db_file,echo=False)
 dbname = 'kmetlog'
-from os.path import expanduser
 engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost',
                        pool_recycle=3600,
                        echo=False)
