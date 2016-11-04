@@ -81,6 +81,9 @@ poller.register(socket,zmq.POLLIN)
 # database stuff
 #engine = create_engine('sqlite:///' + db_file,echo=False)
 dbname = 'kmetlog'
+# the machine is behind firewall, on a network (to be) disconnected from the internet, hosting
+# a MySQL database that only open to localhost, storing meteorological measurements soon to be
+# made public... I don't think it needs a password at all.
 engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost',
                        pool_recycle=3600,
                        echo=False)
