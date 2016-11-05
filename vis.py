@@ -9,7 +9,7 @@ import numpy as np
 
 
 dbname = 'kmetlog'
-engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost',
+engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read().strip() + '@localhost',
                        pool_recycle=3600,
                        echo=False)
 engine.execute('USE ' + dbname)
