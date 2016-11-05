@@ -118,6 +118,10 @@ while True:
                 if d['tag'] in tags:
                     #print(d)
 
+                    # I don't know why I need this again and again. sqlalchemy
+                    # just throw exception about "No database selected" after a while.
+                    engine.execute('USE ' + dbname)
+                    
                     m = Table(d['tag'],meta,autoload=True,autoload_with=engine)
                     engine.execute(m.insert(),**d)
                     
