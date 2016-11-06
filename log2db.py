@@ -84,11 +84,11 @@ dbname = 'kmetlog'
 # the machine is behind firewall, on a network (to be) disconnected from the internet, hosting
 # a MySQL database that only open to localhost, storing meteorological measurements soon to be
 # made public... I don't think it needs a password at all.
-engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read().strip() + '@localhost',
+engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read().strip() + '@localhost/' + dbname,
                        pool_recycle=3600,
                        echo=False)
-engine.execute('CREATE DATABASE IF NOT EXISTS ' + dbname)
-engine.execute('USE ' + dbname)
+#engine.execute('CREATE DATABASE IF NOT EXISTS ' + dbname)
+#engine.execute('USE ' + dbname)
 dbstuff.Base.metadata.create_all(engine)
 meta = dbstuff.Base.metadata
 #meta = MetaData()
@@ -120,7 +120,7 @@ while True:
 
                     # I don't know why I need this again and again. sqlalchemy
                     # just throw exception about "No database selected" after a while.
-                    engine.execute('USE ' + dbname)
+                    #engine.execute('USE ' + dbname)
                     
                     m = Table(d['tag'],meta,autoload=True,autoload_with=engine)
                     engine.execute(m.insert(),**d)
