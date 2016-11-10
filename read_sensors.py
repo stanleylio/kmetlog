@@ -295,7 +295,7 @@ LoopingCall(taskDAQ).start(10)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
 LoopingCall(taskOpticalRain).start(60)
 LoopingCall(lambda: taskMisc(send)).start(60,now=False)
-LoopingCall(lambda: taskBME280(send)).start(60,now=False)
+#LoopingCall(lambda: taskBME280(send)).start(60,now=False)
 LoopingCall(taskWDT).start(121,now=False)
 LoopingCall(taskHeartbeat).start(10,now=False)
 
