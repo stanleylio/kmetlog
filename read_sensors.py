@@ -132,9 +132,14 @@ def taskDAQ():
                 # rotronics temperature
                 rt = {'tag':'Rotronics',
                       'ts':dt2ts(),
-                      'T':r[1]*100.0-30.0,
-                      'RH':r[2]*100}
+                      'T':r[1]*100.0-30.0,  # convert from Volt to Deg.C
+                      'RH':r[2]*100}        # %RH
                 send(rt)
+
+                rmyrtd = {'tag':'RMYRTD',
+                          'ts':dt2ts(),
+                          't_V':r[3]}
+                send(rmyrtd)
 
                 # bucket rain gauge
                 bucket = {'tag':'BucketRain',
