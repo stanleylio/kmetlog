@@ -100,7 +100,7 @@ class RMYRTD_Sample(Base):
     __tablename__ = 'RMYRTD'
     id = Column('id',Integer,primary_key=True)
     ts = Column('ts',Float(precision=32))
-    V = Column('V',Float(precision=32))
+    T = Column('T',Float(precision=32))
 
     def __repr__(self):
         return str(self.__dict__)
