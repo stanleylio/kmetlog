@@ -138,7 +138,7 @@ def taskDAQ():
 
                 rmyrtd = {'tag':'RMYRTD',
                           'ts':dt2ts(),
-                          't_V':r[3]}
+                          'T':r[3]*100.0-50.0}  # [0,1] V maps to [-50,50] DegC
                 send(rmyrtd)
 
                 # bucket rain gauge
