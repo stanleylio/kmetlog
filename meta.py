@@ -15,11 +15,11 @@ with open('/var/kmetlog/log/spaceusage.log') as f:
     D = {}
     ts = None
     for line in f:
-        line = line.strip()
+        line = line.strip().replace('\0','')
         try:
             ts = datetime.strptime(line,'%Y-%m-%dT%H:%M:%SZ')
             continue
-        except ValueError:
+        except (ValueError,TypeError):
             logging.debug(traceback.format_exc())
 
         assert ts is not None
@@ -58,3 +58,5 @@ for k in D.keys():
         break
     except:
         traceback.print_exc()
+
+print('done')
