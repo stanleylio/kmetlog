@@ -1,3 +1,8 @@
+# check how long ago of the latest entries in the database were collected and send them to glazerlab-i7nuc
+# just to keep an eye on things since the promise of a web server on the KM was never delivered.
+# Stanley H.I. Lio
+# hlio@hawaii.edu
+# All Rights Reserved. 2016
 import sys,socket
 from os.path import expanduser
 sys.path.append(expanduser('~'))
