@@ -30,7 +30,7 @@ with open(infile) as f:
         try:
             ts = datetime.strptime(line,'%Y-%m-%dT%H:%M:%SZ')
             continue
-        except (TypeError,ValueError):
+        except (ValueError,TypeError):
             logging.debug(traceback.format_exc())
 
         assert ts is not None
@@ -67,3 +67,5 @@ for k in D.keys():
         break
     except:
         traceback.print_exc()
+
+print('done')

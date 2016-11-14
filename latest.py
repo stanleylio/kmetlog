@@ -1,3 +1,5 @@
+# show the latest reading in the database
+# for debugging use
 import time,sys
 from os.path import expanduser
 sys.path.append(expanduser('~/kmetlog'))
@@ -69,10 +71,13 @@ while True:
                 #print session.query(c).first()
                 #print [prop for prop in class_mapper(dbstuff.BME280_Sample).iterate_properties]
             for r in engine.execute('SELECT * FROM ' + table + ' ORDER BY ts DESC LIMIT 1;'):
-                print '\t', timedelta(seconds=dt2ts() - r['ts'])
+                print '\t', timedelta(seconds=dt2ts() - r['ts']), ' ago' #, ','.join([str(v) for v in r])
+                for k in r.keys():
+                    if k not in ['id','ts']:
+                        print '\t{}\t{}'.format(k,r[k])
                 
             print
-        time.sleep(1)
+        time.sleep(5)
     except KeyboardInterrupt:
         break
 

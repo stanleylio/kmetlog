@@ -132,9 +132,14 @@ def taskDAQ():
                 # rotronics temperature
                 rt = {'tag':'Rotronics',
                       'ts':dt2ts(),
-                      'T':r[1]*100.0-30.0,
-                      'RH':r[2]*100}
+                      'T':r[1]*100.0-30.0,  # convert from Volt to Deg.C
+                      'RH':r[2]*100}        # %RH
                 send(rt)
+
+                rmyrtd = {'tag':'RMYRTD',
+                          'ts':dt2ts(),
+                          'T':r[3]*100.0-50.0}  # [0,1] V maps to [-50,50] DegC
+                send(rmyrtd)
 
                 # bucket rain gauge
                 bucket = {'tag':'BucketRain',
@@ -290,7 +295,7 @@ LoopingCall(taskDAQ).start(10)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
 LoopingCall(taskOpticalRain).start(60)
 LoopingCall(lambda: taskMisc(send)).start(60,now=False)
-LoopingCall(lambda: taskBME280(send)).start(60,now=False)
+#LoopingCall(lambda: taskBME280(send)).start(60,now=False)
 LoopingCall(taskWDT).start(121,now=False)
 LoopingCall(taskHeartbeat).start(10,now=False)
 

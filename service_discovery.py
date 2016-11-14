@@ -185,8 +185,8 @@ if '__main__' == __name__:
     from twisted.internet import reactor
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
-    #logging.basicConfig(level=logging.INFO)
+    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) == 1:
         p = ServiceDiscovery()
@@ -194,4 +194,5 @@ if '__main__' == __name__:
         p.service_query()
         reactor.run()
     elif sys.argv[1] == 'q':
-        print get_publisher_list()
+        for r in get_publisher_list():
+            print r
