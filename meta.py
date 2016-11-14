@@ -1,4 +1,4 @@
-# plot spaceusage.log
+# python meta.py path_to_spaceusage.log output_dir_for_PNGs
 import sys
 sys.path.append('../node')
 from datetime import datetime
@@ -10,16 +10,27 @@ from helper import dt2ts
 
 logging.basicConfig()
 
+# the defaults
+infile = '/var/kmetlog/log/spaceusage.log'
+outdir = '/var/www/km1app/km1app/static/img'
 
-with open('/var/kmetlog/log/spaceusage.log') as f:
+if len(sys.argv) > 1:
+    assert 3 == len(sys.argv)
+    infile = sys.argv[1]
+    outdir = sys.argv[2]
+    assert exists(infile),infile
+    assert exists(outdir),outdir
+
+
+with open(infile) as f:
     D = {}
     ts = None
     for line in f:
-        line = line.strip()
+        line = line.strip().replace('\0','')
         try:
             ts = datetime.strptime(line,'%Y-%m-%dT%H:%M:%SZ')
             continue
-        except ValueError:
+        except (TypeError,ValueError):
             logging.debug(traceback.format_exc())
 
         assert ts is not None
@@ -28,7 +39,7 @@ with open('/var/kmetlog/log/spaceusage.log') as f:
             D[line[1]] = []
         D[line[1]].append([ts,float(line[0])])
 # hack
-        while len(D[line[1]]) > 24*14:
+        while len(D[line[1]]) > 24*7*2:
             D[line[1]].pop(0)
 
 
@@ -46,9 +57,7 @@ for k in D.keys():
             rate = tmp/1024.
             linelabel = '{:.1f} MB/hour'.format(rate)
         
-        plot_path = join('/var/www/km1app/km1app/static/img','space_' + basename(k) + '.png')
-        if not exists(plot_path):
-            plot_path = join('/var/kmetlog/log','space_' + basename(k) + '.png')
+        plot_path = join(outdir,'space_' + basename(k) + '.png')
         plot_time_series(d[0],[v/1024. for v in d[1]],\
                          plot_path,\
                          title=k,xlabel='Logger Time (UTC)',ylabel='Directory Size, MB',\
