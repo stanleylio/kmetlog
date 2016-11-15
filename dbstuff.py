@@ -127,8 +127,16 @@ class Misc_Sample(Base):
         return str(self.__dict__)
 
 
+def get_list_of_tables():
+    return Base.metadata.tables.keys()
+
+def get_list_of_columns(table):
+    return Base.metadata.tables[table].c
+
 
 if '__main__' == __name__:
+    print get_list_of_tables()
+    exit()
     engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
                            pool_recycle=3600,
                            echo=True)
