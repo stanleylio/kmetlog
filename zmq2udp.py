@@ -113,7 +113,7 @@ def taskBroadcast():
     #D = {}
 
 LoopingCall(taskSampler).start(0.5)
-LoopingCall(taskBroadcast).start(10,now=False)
+LoopingCall(taskBroadcast).start(60,now=False)
 
 reactor.run()
 
