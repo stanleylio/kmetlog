@@ -12,7 +12,7 @@ from twisted.internet import reactor
 
 
 
-UDP_PORT = 9007
+UDP_PORT = 5640
 
 
 # Logging
@@ -45,12 +45,12 @@ poller.register(zsocket,zmq.POLLIN)
 # communication
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 sock.bind(('', 0))
-sock.setsockopt(SOL_SOCKET,SO_BROADCAST,1)
+sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 
 
 def send(s):
     try:
-        logger.debug(s)
+        #logger.debug(s)
         sock.sendto(s,('<broadcast>',UDP_PORT))
     except:
         logger.error(traceback.format_exc())
@@ -64,48 +64,52 @@ def taskSampler():
         socks = dict(poller.poll(500))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
             #m = zsocket.recv()
-            m = socket.recv_string()
-            logger.debug(m)
+            m = zsocket.recv_string()
+            #logger.debug(m)
             m = m.split(',',1)
 
             d = json.loads(m[1])
-            if d['tag'] not in tags:
-                continue
-
+            
             D[d['tag']] = d
     except TypeError:
         logger.warning(traceback.format_exc())
         logger.warning(msg)
-    except KeyboardInterrupt:
-        logger.info('User interrupted')
-        break
     except:
         logger.warning(traceback.format_exc())
 
 def taskBroadcast():
+    global D
+    #print '- - - - -'
+    #print sorted(D.keys())
+
+    # emulating the Campbell Logger
+    # format deduced from the siscon source code
+    # total of 17 fields
     s = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
-        0,  # Panel temperature (now obsolete)
-        D['RMYRTD']['T'],       # RTD (Deg.C)
-        D['Rotronics']['RH'],   # Humidity (%)
-        D.get('Rotronics',{}).get('T',0),                   # Humidity_temperature
-        D.get('BucketRain',{}).get('accumulation_mm',0),    # Bucket_rain_gauge
-        PSP (mV)
-        PIR (mV)
-        PIR Case thermistor (V)
-        PIR Dome thermistor (V)
-        RTD fan speed
-        Humidity fan speed
-        PAR (V)
-        Relative wind speed (ultrasonic, knot)
-        Relative wind direction
-        Weather condition (optical)
-        Precipitation (optical, mm)
-        Precipitation accumulation (optical)
+        0,                                                      # Panel temperature (obsolete; kept for compatibility)
+        D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
+        D.get('Rotronics',{}).get('RH',0),                      # Humidity (%)
+        D.get('Rotronics',{}).get('T',0),                       # Humidity_temperature
+        D.get('BucketRain',{}).get('accumulation_mm',0),        # Bucket_rain_gauge
+        D.get('PSP',{}).get('psp_mV',0),                        # PSP (mV)
+        D.get('PIR',{}).get('ir_mV',0),                         # PIR (mV)
+        D.get('PIR',{}).get('t_case_V',0),                      # PIR Case thermistor (V)
+        D.get('PIR',{}).get('t_dome_V',0),                      # PIR Dome thermistor (V)
+        D.get('Misc',{}).get('RadFan2_rpm',0),                  # RTD fan speed
+        D.get('Misc',{}).get('RadFan1_rpm',0),                  # Humidity fan speed
+        D.get('PAR',{}).get('par_V',0),                         # PAR (V)
+        D.get('UltrasonicWind',{}).get('apparent_speed_mps',0)*1.94384, # Relative wind speed (ultrasonic, m/s to knot)
+        D.get('UltrasonicWind',{}).get('apparent_direction_deg',0), # Relative wind direction
+        D.get('OpticalRain',{}).get('weather_condition','  '),  # Weather condition (optical)
+        D.get('OpticalRain',{}).get('instantaneous_mmphr',0),   # Precipitation (optical, mm)
+        D.get('OpticalRain',{}).get('accumulation_mm',0),       # Precipitation accumulation (optical)
         )
     send(s)
+    print s.strip()
+    D = {}
 
 LoopingCall(taskSampler).start(0.5)
-LoopingCall(taskBroadcast).start(60)
+LoopingCall(taskBroadcast).start(6,now=False)
 
 reactor.run()
 
