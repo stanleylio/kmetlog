@@ -12,7 +12,7 @@ from twisted.internet import reactor
 
 
 
-UDP_PORT = 5640
+UDP_PORT = 5642
 
 
 # Logging
@@ -85,7 +85,8 @@ def taskBroadcast():
     # emulating the Campbell Logger
     # format deduced from the siscon source code
     # total of 17 fields
-    s = '{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n'.format(
+    # ... yes it is space-delimited... and yes, one of the data field could also be spaces...
+    s = '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
         D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
         D.get('Rotronics',{}).get('RH',0),                      # Humidity (%)
@@ -106,10 +107,13 @@ def taskBroadcast():
         )
     send(s)
     print s.strip()
-    D = {}
+    for k in D.keys():
+        if time.time() - D[k]['ts'] > 60:
+            del D[k]
+    #D = {}
 
 LoopingCall(taskSampler).start(0.5)
-LoopingCall(taskBroadcast).start(6,now=False)
+LoopingCall(taskBroadcast).start(10,now=False)
 
 reactor.run()
 
