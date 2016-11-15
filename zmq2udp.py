@@ -51,7 +51,8 @@ sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 def send(s):
     try:
         #logger.debug(s)
-        sock.sendto(s,('<broadcast>',UDP_PORT))
+        #sock.sendto(s,('<broadcast>',UDP_PORT))
+        sock.sendto(s,('192.168.1.255',UDP_PORT))
     except:
         logger.error(traceback.format_exc())
 
@@ -86,7 +87,8 @@ def taskBroadcast():
     # format deduced from the siscon source code
     # total of 17 fields
     # ... yes it is space-delimited... and yes, one of the data field could also be spaces...
-    s = '{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.format(
+    # and don't ask me why a \0 is needed at the end. "because siscon wants it that way."
+    s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
         D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
         D.get('Rotronics',{}).get('RH',0),                      # Humidity (%)
