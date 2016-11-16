@@ -1,6 +1,8 @@
-# relay met data to siscon
-# handles data collection, formatting and UDP broadcast
-# to be run on kmet-bbb up on the met. mast
+# Relay local met data to siscon (to emulate/replace the campbell logger)
+# Handles data collection, formatting and UDP broadcast
+# The output is a space-delimited string that the old siscon program expects
+# To be run on kmet-bbb up on the met. mast
+# One message per minute.
 #
 # Stanley H.I. Lio
 # hlio@hawaii.edu
@@ -13,6 +15,7 @@ from twisted.internet import reactor
 
 
 UDP_PORT = 5642
+
 
 
 # Logging
@@ -52,6 +55,8 @@ def send(s):
     try:
         #logger.debug(s)
         #sock.sendto(s,('<broadcast>',UDP_PORT))
+        # the siscon code doesn't handle UDP broadcast messages correctly, so UDP <broadcast>
+        # cannot be used.
         sock.sendto(s,('192.168.1.255',UDP_PORT))
     except:
         logger.error(traceback.format_exc())
@@ -88,6 +93,7 @@ def taskBroadcast():
     # total of 17 fields
     # ... yes it is space-delimited... and yes, one of the data field could also be spaces...
     # and don't ask me why a \0 is needed at the end. "because siscon wants it that way."
+    # "what's the 1: for at the beginning?" "because siscon wants it that way." even though it is trivial to change it.
     s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
         D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
