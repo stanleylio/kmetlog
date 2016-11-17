@@ -15,6 +15,7 @@ from twisted.internet import reactor
 
 
 UDP_PORT = 5642
+PERIOD = 60     # seconds
 
 
 
@@ -116,12 +117,12 @@ def taskBroadcast():
     send(s)
     print s.strip()
     for k in D.keys():
-        if time.time() - D[k]['ts'] > 60:
+        if time.time() - D[k]['ts'] > PERIOD:
             del D[k]
     #D = {}
 
 LoopingCall(taskSampler).start(0.5)
-LoopingCall(taskBroadcast).start(60,now=False)
+LoopingCall(taskBroadcast).start(PERIOD,now=False)
 
 reactor.run()
 
