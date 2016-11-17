@@ -15,7 +15,7 @@ from twisted.internet import reactor
 
 
 UDP_PORT = 5642
-PERIOD = 60     # seconds
+PERIOD = 1     # seconds
 
 
 
@@ -68,7 +68,7 @@ D = {}  # latest samples of all received variables
 
 def taskSampler():
     try:
-        socks = dict(poller.poll(500))
+        socks = dict(poller.poll(100))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
             #m = zsocket.recv()
             m = zsocket.recv_string()
@@ -76,7 +76,12 @@ def taskSampler():
             m = m.split(',',1)
 
             d = json.loads(m[1])
-            
+            # clocks on kmet-bbb and chartroom computer are not in sync, so d['ts'] and
+            # time.time() on chartroom computer might be further apart than they actually
+            # are.
+            # this saves the chartroom computer time into the data
+            assert '_ReceptionTime' not in d
+            d['_ReceptionTime'] = time.time()
             D[d['tag']] = d
     except TypeError:
         logger.warning(traceback.format_exc())
@@ -117,11 +122,11 @@ def taskBroadcast():
     send(s)
     print s.strip()
     for k in D.keys():
-        if time.time() - D[k]['ts'] > PERIOD:
+        if time.time() - D[k]['_ReceptionTime'] > 3*PERIOD:
             del D[k]
     #D = {}
 
-LoopingCall(taskSampler).start(0.5)
+LoopingCall(taskSampler).start(0.1)
 LoopingCall(taskBroadcast).start(PERIOD,now=False)
 
 reactor.run()

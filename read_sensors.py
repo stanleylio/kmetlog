@@ -287,14 +287,14 @@ def taskHeartbeat():
 
 
 logger.debug('starting tasks...')
-LoopingCall(taskDAQ).start(10)
+LoopingCall(taskDAQ).start(1)
 #lcport = LoopingCall(taskPortWind)
 #lcport.start(1)
 #lcstbd = LoopingCall(taskStarboardWind)
 #lcstbd.start(1)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
-LoopingCall(taskOpticalRain).start(60)
-LoopingCall(lambda: taskMisc(send)).start(60,now=False)
+LoopingCall(taskOpticalRain).start(1)
+LoopingCall(lambda: taskMisc(send)).start(5,now=False)
 #LoopingCall(lambda: taskBME280(send)).start(60,now=False)
 LoopingCall(taskWDT).start(121,now=False)
 LoopingCall(taskHeartbeat).start(10,now=False)
