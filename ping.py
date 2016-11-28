@@ -13,6 +13,18 @@ from sqlalchemy import create_engine
 from sqlalchemy import inspect
 
 
+m = 'phone home'
+print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
+exit()
+
+
+
+
+
+
+
+
+
 #m = socket.gethostname()
 #print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
 
