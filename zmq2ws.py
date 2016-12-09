@@ -10,7 +10,7 @@ from autobahn.twisted.websocket import WebSocketServerFactory,\
 import config
 
 
-log_path = '/var/logging/log'
+log_path = '/var/kmetlog/log'
 if not exists(log_path):
     makedirs(log_path)
 
@@ -75,9 +75,9 @@ class BroadcastServerFactory(WebSocketServerFactory):
 # relay this...
 context = zmq.Context()
 socket = context.socket(zmq.SUB)
-#socket.connect('tcp://localhost:9002')
+socket.connect('tcp://localhost:9002')
 #socket.connect('tcp://localhost:' + str(config.kmet1_port))
-socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
+#socket.connect('tcp://' + config.kmet1_ip + ':' + str(config.kmet1_port))
 socket.setsockopt_string(zmq.SUBSCRIBE,u'')
 
 # ... to this
