@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import inspect
 
 
-m = 'phone home'
+m = 'alive'
 print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
 exit()
 
