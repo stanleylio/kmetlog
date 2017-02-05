@@ -6,8 +6,8 @@
 # hlio@hawaii.edu
 # All Rights Reserved, 2016
 import sys,zmq,logging
-sys.path.append(r'../node')
-from helper import *
+sys.path.append(r'..')
+from node.helper import *
 from random import random,choice
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -124,13 +124,14 @@ LC = [LoopingCall(taskPIR),
       #LoopingCall(taskStarboardWind),
       LoopingCall(taskUltrasonicWind),
       LoopingCall(taskOpticalRain),
-      #LoopingCall(taskBME280Sample),
+      LoopingCall(taskBME280Sample),
       LoopingCall(taskRotronics),
       LoopingCall(taskRMYRTD),
       LoopingCall(taskBucketRain),
       LoopingCall(taskMisc),]
 for lc in LC:
     lc.start(50*random()/10. + 1,now=False)
+    #lc.start(1,now=False)
 
 reactor.run()
 print('done')

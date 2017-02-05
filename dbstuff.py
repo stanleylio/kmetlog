@@ -137,7 +137,8 @@ def get_list_of_columns(table):
 if '__main__' == __name__:
     print get_list_of_tables()
     exit()
-    engine = create_engine('mysql+mysqldb://root:otg_km!@localhost',
+    from os.path import expanduser
+    engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read().strip() + '@localhost',
                            pool_recycle=3600,
                            echo=True)
     dbname = 'kmetlog'

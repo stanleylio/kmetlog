@@ -2,7 +2,6 @@
 # Handles data collection, formatting and UDP broadcast
 # The output is a space-delimited string that the old siscon program expects
 # To be run on kmet-bbb up on the met. mast
-# One message per minute.
 #
 # Stanley H.I. Lio
 # hlio@hawaii.edu
@@ -99,7 +98,8 @@ def taskBroadcast():
     # total of 17 fields
     # ... yes it is space-delimited... and yes, one of the data field could also be spaces...
     # and don't ask me why a \0 is needed at the end. "because siscon wants it that way."
-    # "what's the 1: for at the beginning?" "because siscon wants it that way." even though it is trivial to change it.
+    # "What's the 1: for at the beginning?" "because siscon wants it that way." even though it is trivial to change it.
+    # "What's that \x00 at the end" BECAUSE SISCON WANTS IT THAT WAY. NO MORE QUESTIONS.
     s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
         D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
