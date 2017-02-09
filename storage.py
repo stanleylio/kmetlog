@@ -11,10 +11,18 @@ class storage(object):
     def __init__(self,user,password,dbname):
         self._dbname = dbname
         self._conn = MySQLdb.connect(host='localhost',
-                                     user='root',
+                                     user=user,
                                      passwd=password,
                                      db=dbname)
         self._cur = self._conn.cursor()
+
+    def get_list_of_tables(self):
+        self._cur.execute('SHOW TABLES;')
+        return [tmp[0] for tmp in self._cur.fetchall()]
+
+    def get_list_of_columns(self,table):
+        self._cur.execute('SELECT * FROM {}.`{}`;'.format(self._dbname,table))
+        return [tmp[0] for tmp in self._cur.description]
 
     def insert(self,table,sample):
         table = '{}.`{}`'.format(self._dbname,table)
@@ -31,9 +39,17 @@ class storage(object):
         self._cur.execute(cmd)
         self._conn.commit()
 
-    def get_column_names(self,table):
-        self._cur.execute('SELECT * FROM {}.`{}`;'.format(self._dbname,table))
-        return [tmp[0] for tmp in self._cur.description]
+    def read_time_range(self,table,column,begin,end,time_col='ts'):
+        time_range = 'WHERE {time_col} BETWEEN "{begin}" AND "{end}"'.\
+                     format(time_col=time_col,begin=begin,end=end)
+        cmd = 'SELECT {} FROM {} {time_range}'.\
+                format('{},{}'.format(time_col,column),
+                       table,
+                       time_range=time_range,
+                       time_col=time_col)
+        #print cmd
+        self._cur.execute(cmd)
+        return list(self._cur.fetchall())
 
 
 if '__main__' == __name__:
@@ -48,9 +64,15 @@ if '__main__' == __name__:
     cur = conn.cursor()
 
     # create the specified table
-    table = 'kmet-bbb'
-    configfile = 'config.kmet_bbb'
+    table = 'met'
+    configfile = 'config.met'
     tmp = ','.join([' '.join(tmp) for tmp in get_schema(configfile)])
     cmd = 'CREATE TABLE IF NOT EXISTS {} ({})'.format('{}.`{}`'.format(dbname,table),tmp)
     print(cmd)
     cur.execute(cmd)
+
+    print '- - - - -'
+    import time
+    store = storage('root',open('/home/pi/mysql_cred').read().strip(),'kmetlog')
+    #print store.get_list_of_columns('met')
+    print store.read_time_range('met','PAR_V',time.time()-100,time.time())

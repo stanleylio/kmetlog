@@ -34,7 +34,7 @@ def send(d):
 def taskPIR():
     d = {'tag':'PIR',
          'ts':dt2ts(datetime.utcnow()),
-         'ir_mV':round(50*random(),3),
+         'ir_mV':round(10*random(),3),
          't_case_V':round(2.5*random(),3),
          't_dome_V':round(2.5*random(),3)}
     send(d)
@@ -130,8 +130,8 @@ LC = [LoopingCall(taskPIR),
       LoopingCall(taskBucketRain),
       LoopingCall(taskMisc),]
 for lc in LC:
-    lc.start(50*random()/10. + 1,now=False)
-    #lc.start(1,now=False)
+    #lc.start(50*random()/10. + 1,now=False)
+    lc.start(1,now=False)
 
 reactor.run()
 print('done')

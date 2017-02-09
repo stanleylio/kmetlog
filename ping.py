@@ -1,49 +1,45 @@
-# check how long ago of the latest entries in the database were collected and send them to glazerlab-i7nuc
-# just to keep an eye on things since the promise of a web server on the KM was never delivered.
+# Upload past hour average of all variables go glazerlab-i7nuc
+# Just to keep an eye on things since the promise of a web
+# server on the KM was never delivered.
+#
 # Stanley H.I. Lio
 # hlio@hawaii.edu
-# All Rights Reserved. 2016
-import sys,socket
+# All Rights Reserved. 2017
+from __future__ import division
+import sys,time,json,traceback
 from os.path import expanduser
 sys.path.append(expanduser('~'))
 from kmetlog import dbstuff
 from node.helper import ts2dt
 from node.send2server import post
-from sqlalchemy import create_engine
-from sqlalchemy import inspect
+from kmetlog.storage import storage
 
 
-m = 'alive'
-print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
-exit()
+store = storage('www-data',open('/var/www/km1app/km1app/mysql_cred').read().strip(),'kmetlog')
 
+D = {}
+end = time.time()
+begin = end - 3600
+for table in store.get_list_of_tables():
+    V = {}
+    for column in store.get_list_of_columns(table):
+        if column in ['ts','OpticalRain_weather_condition']:
+            continue
+        #print table,column
+        try:
+            r = store.read_time_range(table,column,begin,end)
+            N = len(r)
+            r = zip(*r)
+            #V[column] = (max(r[0]),round(sum(r[1])/N,3))
+            V[column] = (max(r[0]),round(sum(r[1])/N,3),N)
+        except:
+            pass
+    D[table] = V
 
-
-
-
-
-
-
-
-#m = socket.gethostname()
-#print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
-
-dbname = 'kmetlog'
-engine = create_engine('mysql+mysqldb://root:' + open(expanduser('~/mysql_cred')).read() + '@localhost/' + dbname)
-meta = dbstuff.Base.metadata
-meta.bind = engine
-
-insp = inspect(engine)
-
-d = []
-for table in insp.get_table_names():
-    #print table
-    for r in engine.execute('SELECT FROM_UNIXTIME(ts) FROM ' + table + ' ORDER BY ts DESC LIMIT 1;'):
-#        for k in r.keys():
-#            print '\t{}\t{}'.format(k,r[k])
-        #d.append({k:r[k] for k in r.keys()})
-        d.append('{}:{}'.format(table,(ts2dt() - r['FROM_UNIXTIME(ts)']).total_seconds()))
-
-m = ','.join(d)
-print m
-print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
+try:
+    m = json.dumps(D,separators=(',',':'))
+    print m
+    print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
+except:
+    m = traceback.format_exc()
+    print(post(m,'http://grogdata.soest.hawaii.edu/api/4'))
