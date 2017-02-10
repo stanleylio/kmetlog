@@ -1,6 +1,6 @@
 # python meta.py path_to_spaceusage.log output_dir_for_PNGs
 import sys
-sys.path.append('../node')
+sys.path.append('../../node')
 from datetime import datetime
 import logging,traceback
 from display.gen_plot import plot_time_series
