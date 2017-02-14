@@ -35,7 +35,7 @@ class storage(object):
               format(table=table,
                      cols=','.join(cols),
                      vals=','.join(vals))
-        #print cmd
+        #print(cmd)
         self._cur.execute(cmd)
         self._conn.commit()
 
@@ -48,7 +48,7 @@ class storage(object):
                        db=self._dbname,
                        table=table,
                        time_range=time_range)
-        #print cmd
+        #print(cmd)
         self._cur.execute(cmd)
         return list(self._cur.fetchall())
 
@@ -72,8 +72,8 @@ if '__main__' == __name__:
     print(cmd)
     cur.execute(cmd)
 
-    print '- - - - -'
+    print('- - - - -')
     import time
     store = storage('root',open('/home/pi/mysql_cred').read().strip(),'kmetlog')
-    #print store.get_list_of_columns('met')
-    print store.read_time_range('met','PAR_V',time.time()-100,time.time())
+    #print(store.get_list_of_columns('met'))
+    print(store.read_time_range('met','PAR_V',time.time()-100,time.time()))
