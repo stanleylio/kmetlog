@@ -42,11 +42,12 @@ class storage(object):
     def read_time_range(self,table,column,begin,end,time_col='ts'):
         time_range = 'WHERE {time_col} BETWEEN "{begin}" AND "{end}"'.\
                      format(time_col=time_col,begin=begin,end=end)
-        cmd = 'SELECT {} FROM {} {time_range}'.\
-                format('{},{}'.format(time_col,column),
-                       table,
-                       time_range=time_range,
-                       time_col=time_col)
+        cmd = 'SELECT {time_col},{column} FROM {db}.`{table}` {time_range}'.\
+                format(time_col=time_col,
+                       column=column,
+                       db=self._dbname,
+                       table=table,
+                       time_range=time_range)
         #print cmd
         self._cur.execute(cmd)
         return list(self._cur.fetchall())

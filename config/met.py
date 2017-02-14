@@ -202,5 +202,3 @@ if '__main__' == __name__:
         cmd = 'CREATE TABLE IF NOT EXISTS {} ({})'.format('{}.`{}`'.format(dbname,table),tmp)
         print(cmd)
         cur.execute(cmd)
-
-
