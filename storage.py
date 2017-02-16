@@ -21,7 +21,7 @@ class storage(object):
         return [tmp[0] for tmp in self._cur.fetchall()]
 
     def get_list_of_columns(self,table):
-        self._cur.execute('SELECT * FROM {}.`{}`;'.format(self._dbname,table))
+        self._cur.execute('SELECT * FROM {}.`{}` LIMIT 2;'.format(self._dbname,table))
         return [tmp[0] for tmp in self._cur.description]
 
     def insert(self,table,sample):
