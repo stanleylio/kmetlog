@@ -1,7 +1,7 @@
 subscribeto = ['localhost:9002','192.168.1.167:9002']
 private_key_file = '/root/.ssh/id_rsa'
 data_dir = '/var/kmetlog/data'
-log_dir = '/var/kmetlog/log'}
+log_dir = '/var/kmetlog/log'
 service_discovery_port = 9005
 realtime_port = 9007
 
@@ -199,8 +199,12 @@ if '__main__' == __name__:
                                  db=dbname)
     cur = conn.cursor()
 
+    # conf: a dictionary; one table per key;
+    # each key maps to a list of dictionaries: {'dbtag':...} is mandatory; everything else is optional.
+    # 'dbtype' defaults to DOUBLE
+
     for table in sorted(conf):
         tmp = ','.join([' '.join(tmp) for tmp in [(column['dbtag'],column.get('dbtype','DOUBLE')) for column in conf[table]]])
         cmd = 'CREATE TABLE IF NOT EXISTS {} ({})'.format('{}.`{}`'.format(dbname,table),tmp)
         print(cmd)
-        cur.execute(cmd)
+        #cur.execute(cmd)
