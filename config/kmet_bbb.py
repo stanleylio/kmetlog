@@ -181,6 +181,16 @@ conf['Misc'] = tmp
 
 
 if '__main__' == __name__:
+
+    exit()
+
+    # use storage.storage2.create_table() instead.
+
+
+
+
+
+    
     for table in sorted(conf):
         print '- - -'
         print table

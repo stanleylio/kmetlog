@@ -1,6 +1,41 @@
 from __future__ import division
-import subprocess
-import time
+import subprocess,time,psutil
+import sys
+from os.path import expanduser
+sys.path.append(expanduser('~'))
+from node.storage.storage2 import storage,create_table
+
+
+store = storage(dbname='kmetlog')
+
+if True:
+    conf = {'_meta': [
+        {
+            'dbtag':'ts'
+        },
+        {
+            'dbtag':'total'
+        },
+        {
+            'dbtag':'used'
+        },
+        {
+            'dbtag':'free'
+        },
+        ]}
+
+    create_table(conf,'kmetlog')
+    print store.get_list_of_tables()
+
+r = psutil.disk_usage('/')
+print '{},{},{},{}'.format(time.time(),r.total,r.used,r.free)
+store.insert('_meta',{'ts':time.time(),
+                      'total':r.total,
+                      'used':r.used,
+                      'free':r.free
+                      })
+exit()
+# in Python 3.3+, use shutil.disk_usage() instead
 
 
 def execute(cmdaslist):
