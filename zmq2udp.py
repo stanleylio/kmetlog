@@ -34,18 +34,14 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 
 
-# ZMQ IPC stuff
 topic = u'kmet1_'
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
 zsocket.connect('tcp://127.0.0.1:9002')
 zsocket.setsockopt_string(zmq.SUBSCRIBE,topic)
-
 poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
-
-# communication
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 sock.bind(('', 0))
 sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
