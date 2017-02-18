@@ -1,7 +1,9 @@
-# -*- coding: utf-8 -*-
-name = 'kmet-bbb'
-location = 'Meteorological mast on the Kilo Moana'
-note = 'kmet-bbb'
+subscribeto = ['localhost:9002','192.168.1.167:9002']
+private_key_file = '/root/.ssh/id_rsa'
+data_dir = '/var/kmetlog/data'
+log_dir = '/var/kmetlog/log'}
+service_discovery_port = 9005
+realtime_port = 9007
 
 
 DAQ_HV_PORT = ('/dev/ttyUSB0',1)    # serial port to DAQ, and its RS485 ID

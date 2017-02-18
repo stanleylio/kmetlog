@@ -46,14 +46,6 @@ class BroadcastServerFactory(WebSocketServerFactory):
     def __init__(self, url):
         WebSocketServerFactory.__init__(self, url)
         self.clients = []
-        self.v = 50
-        self.tick()
-
-    def tick(self):
-        pass
-        #self.broadcast('haha!')
-        #reactor.callLater(0.1, self.tick)
-        #reactor.stop()
 
     def register(self, client):
         if client not in self.clients:

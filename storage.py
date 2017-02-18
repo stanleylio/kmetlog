@@ -28,6 +28,11 @@ class storage(object):
         table = '{}.`{}`'.format(self._dbname,table)
         cur = self._conn.cursor()
 
+        for k in sample:
+            # text/string/char value(s) must be in quote
+            if type(sample[k]) in [str,unicode]:
+                sample[k] = "'{}'".format(sample[k])
+        
         sample = [(k,v) for k,v in sample.iteritems()]
         cols,vals = zip(*sample)
         vals = [str(tmp) for tmp in vals]
