@@ -2,9 +2,15 @@ import MySQLdb
 from importlib import import_module
 
 
-def get_schema(nodeconfig):
-    C = import_module(nodeconfig.replace('-','_'))
-    return [(c['dbtag'],c.get('dbtype','DOUBLE')) for c in C.conf]
+
+
+
+
+assert False
+
+
+
+
 
 
 class storage(object):
@@ -54,6 +60,12 @@ class storage(object):
 
 
 if '__main__' == __name__:
+
+    def get_schema(nodeconfig):
+        C = import_module(nodeconfig.replace('-','_'))
+        return [(c['dbtag'],c.get('dbtype','DOUBLE')) for c in C.conf]
+
+
     from os.path import expanduser
     password = open(expanduser('~/mysql_cred')).read().strip()
     dbname = 'kmetlog'
