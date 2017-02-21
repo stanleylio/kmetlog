@@ -6,7 +6,7 @@
 import zmq,sys,logging,traceback
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
-sys.path.append('..')
+sys.path.append('/home/nuc')
 from node.wsrelay import BroadcastServerProtocol,BroadcastServerFactory
 from autobahn.twisted.websocket import WebSocketServerFactory,\
      WebSocketServerProtocol,\
