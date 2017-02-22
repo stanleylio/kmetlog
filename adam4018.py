@@ -204,13 +204,13 @@ if '__main__' == __name__:
     logger.setLevel(logging.DEBUG)
     
     import os
-    with ADAM4018('01','/dev/ttyUSB0',9600) as daq:
+    with ADAM4018('05','/dev/ttyUSB1',9600) as daq:
         #print daq.cmdConfigurationStatus()
         #print daq.cmdReadModuleName()
         #print daq.cmdReadFirmwareVersion()
 
         if daq.CheckModuleName():
-            if daq.SetInputRange(15e-3):
+            if daq.SetInputRange(50e-3):
                 print(daq.ReadAll())
                 while True:
                     #os.system('cls' if os.name == 'nt' else 'clear')

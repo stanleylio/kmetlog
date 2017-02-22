@@ -69,11 +69,11 @@ if '__main__' == __name__:
     logging.basicConfig(level=logging.DEBUG)
     
     #import os
-    with ADAM4080('03','/dev/ttyUSB2',9600) as fc:
+    with ADAM4080('04','/dev/ttyUSB2',9600) as fc:
         if fc.CheckModuleName():
             while True:
                 #os.system('cls' if os.name == 'nt' else 'clear')
-                print(fc.ReadFrequency(0))
+                print(fc.ReadFrequency(0),fc.ReadFrequency(1))
                 time.sleep(0.1)
         else:
             print('CheckModuleName() returns False')
