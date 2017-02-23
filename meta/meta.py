@@ -8,24 +8,23 @@ from node.storage.storage2 import storage,create_table
 
 store = storage(dbname='kmetlog')
 
-if True:
-    conf = {'_meta': [
-        {
-            'dbtag':'ts'
-        },
-        {
-            'dbtag':'total'
-        },
-        {
-            'dbtag':'used'
-        },
-        {
-            'dbtag':'free'
-        },
-        ]}
+conf = [
+    {
+        'dbtag':'ts'
+    },
+    {
+        'dbtag':'total'
+    },
+    {
+        'dbtag':'used'
+    },
+    {
+        'dbtag':'free'
+    },
+    ]
 
-    create_table(conf,'kmetlog')
-    print store.get_list_of_tables()
+create_table(conf,'_meta',dbname='kmetlog')
+print store.get_list_of_tables()
 
 r = psutil.disk_usage('/')
 print '{},{},{},{}'.format(time.time(),r.total,r.used,r.free)
