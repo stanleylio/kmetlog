@@ -11,6 +11,7 @@ DAQ_LV_PORT = ('/dev/ttyUSB1',2)
 DAQ_F_PORT = ('/dev/ttyUSB2',3)
 
 # or record all channels and map later?
+# well the mapping has to live somewhere anyway. so here.
 DAQ_CHANNEL_MAP = {'PIR_mV':('LV',2),
                    'PIR_case_V':('HV',6),
                    'PIR_dome_V':('HV',7),
