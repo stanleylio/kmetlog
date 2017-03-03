@@ -27,10 +27,8 @@ DAQ_CHANNEL_MAP = {'PIR_mV':('LV',2),
 
 if '__main__' == __name__:
 
+    print('use storage.storage2.create_table() instead.')
     exit()
-
-    # use storage.storage2.create_table() instead.
-
 
 
 
