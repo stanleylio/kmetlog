@@ -12,15 +12,15 @@ DAQ_LV_PORT = ('/dev/ttyUSB1',5,9600)
 # ADAM-4080
 DAQ_F_PORT = ('/dev/ttyUSB2',4,9600)
 
-DAQ_CH_MAP = {'PIR_mV':0,
-              'PIR_case_V':1,
-              'PIR_dome_V':2,
-              'PSP_mV':1,
+DAQ_CH_MAP = {'PIR_mV':3,
+              'PIR_case_V':4,
+              'PIR_dome_V':5,
+              'PSP_mV':0,
               'PAR_V':0,
-              'BucketRain_accumulation_mm':3,
+              'BucketRain_accumulation_mm':2,
               'Rotronics_T':6,
               'Rotronics_RH':7,
-              'RMYRTD_T':5,
+              'RMYRTD_T':1,
               'Rotronics_Fan_rpm':0,
               'RMYRTD_Fan_rpm':1,
               }

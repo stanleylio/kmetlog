@@ -242,9 +242,9 @@ def taskHeartbeat():
         logger.exception(traceback.format_exc())
 
 
-LoopingCall(taskWDT).start(121,now=False)
-LoopingCall(taskDAQ).start(1)
-LoopingCall(lambda: taskMisc(send)).start(5,now=False)
+LoopingCall(taskWDT).start(61,now=False)
+LoopingCall(taskDAQ).start(10)
+LoopingCall(lambda: taskMisc(send)).start(10,now=False)
 #LoopingCall(taskUltrasonicWind).start(1,now=False)
 #LoopingCall(taskOpticalRain).start(1)
 #LoopingCall(lambda: taskBME280(send)).start(60,now=False)
