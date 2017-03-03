@@ -1,3 +1,4 @@
+# is anyone even using this?
 # used on kmet-rpi1, preping for kmet-bbb3
 # WORK IN PROGRESS
 #

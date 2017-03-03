@@ -87,7 +87,7 @@ def send(d):
             topic = d['tag']
             s = json.dumps(d,separators=(',',':'))
             s = 'kmet1_{topic},{msg}'.format(msg=s,topic=topic)
-            logger.debug(s)
+            logger.info(s)
         else:
             s = ''
         send.last_transmitted = datetime.utcnow()
@@ -173,6 +173,10 @@ def taskUltrasonicWind():
             #logger.debug(''.join(line))
             #logger.debug([ord(c) for c in line])
             line = ''.join(line).strip().split(' ')
+            if len(line) <= 0:
+                logger.warning('taskUltrasonicWind(): no response from Ultrasonic anemometer')
+                return
+                
             if '0' == line[0] and '*' == line[3][2]:    # '0' is the address of the sensor
                 d = {'tag':'UltrasonicWind',
                      'ts':time.time(),
@@ -197,6 +201,10 @@ def taskOpticalRain():
                 if c == '\r':
                     break
             line = ''.join(line).rstrip()
+
+            if len(line) <= 0:
+                logger.warning('taskOpticalRain(): no response from Optical Rain Gauge')
+                return
 
             d = {'tag':'OpticalRain',
                  'ts':time.time(),
@@ -231,7 +239,7 @@ def taskHeartbeat():
 
 
 LoopingCall(taskWDT).start(61,now=False)
-LoopingCall(taskDAQ).start(10)
+LoopingCall(taskDAQ).start(1)
 LoopingCall(lambda: taskMisc(send)).start(10,now=False)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
 LoopingCall(taskOpticalRain).start(1)

@@ -1,3 +1,4 @@
+# is anyone using this?
 # store stuff from zmq to text file, with timestamps
 # 
 # SOEST, University of Hawaii
