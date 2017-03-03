@@ -1,3 +1,4 @@
+from __future__ import division
 import sys,logging,traceback,time
 #from drivers.Adafruit_BME280 import *
 from drivers.watchdog import reset_auto
@@ -23,14 +24,13 @@ def taskMisc(send):
         if not fc.CheckModuleName():
             logging.critical('Cannot reach the ADAM frequency counter.')
             return
-        f0 = fc.ReadFrequency(0)
-        f1 = fc.ReadFrequency(1)
+        r = fc.ReadFrequency(0),fc.ReadFrequency(1)
         # the radiation shield fan gives two pulses per revolution.
         # so RPM = Hz/2*60
         send({'tag':'Misc',
              'ts':time.time(),
-             'Rotronics_Fan_rpm':f0/2*60,   # rotronics humidity shield
-             'RMYRTD_Fan_rpm':f1/2*60,      # RMY RTD shield
+             'Rotronics_Fan_rpm':r[config.DAQ_CH_MAP['Rotronics_Fan_rpm']]/2*60,    # rotronics humidity shield
+             'RMYRTD_Fan_rpm':r[config.DAQ_CH_MAP['RMYRTD_Fan_rpm']]/2*60,          # RMY RTD shield
              })
     except:
         logging.exception(traceback.format_exc())
