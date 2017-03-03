@@ -1,5 +1,5 @@
-# For kmet-bbb only
-# Periodically read the sensors and publish via TCP
+# Periodically read the sensors and publish via zmq
+# For kmet-bbb3
 #
 # Putting all polling in one process:
 #   Pros: all code in one place
@@ -10,71 +10,67 @@
 #       one slow task can slow/block everything else
 # 
 # Ocean Technology Group
-# SOEST, University of Hawaii
+# University of Hawaii
 # Stanley H.I. Lio
 # hlio@hawaii.edu
-# All Rights Reserved, 2016
+# All Rights Reserved. 2017
+from __future__ import division,print_function
 import sys,zmq,logging,json,time,traceback,serial
 import logging.handlers
-sys.path.append(r'../node')
-from helper import dt2ts
+from os.path import expanduser
+sys.path.append(expanduser('~/node'))
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime,timedelta
+from adam4017 import ADAM4017
 from adam4018 import ADAM4018
-from os import makedirs
-from os.path import exists,join
+from misctask import initdaqf
 #import service_discovery
-from config import config
 from socket import gethostname
-from misctask import taskBME280,taskWDT,taskMisc
+from misctask import taskWDT,taskMisc
+from config.config_support import import_node_config
 
 
-config = config[gethostname()]
-
-log_path = config['log_dir']
-if not exists(log_path):
-    makedirs(log_path)
+config = import_node_config()
 
 
-logging.basicConfig(level=logging.DEBUG)
+#'DEBUG,INFO,WARNING,ERROR,CRITICAL'
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-fh = logging.handlers.RotatingFileHandler(join(log_path,'read_sensors.log'),
-                                          maxBytes=1e7,
-                                          backupCount=5)
-fh.setLevel(logging.WARNING)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logging.Formatter.converter = time.gmtime
-formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
-fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-logger.addHandler(fh)
-logger.addHandler(ch)
+handler = logging.handlers.SysLogHandler(address='/dev/log')
+logger.addHandler(handler)
 
 
 def initdaqhv():
-    logger.debug('Initialize high-volt DAQ')
-    daq = ADAM4018('01','/dev/ttyUSB0',9600)
+    logging.debug('Initializing high-volt DAQ')
+    daq = ADAM4017('{:02d}'.format(config.DAQ_HV_PORT[1]),config.DAQ_HV_PORT[0],config.DAQ_HV_PORT[2])
     if not daq.CheckModuleName():
-        logger.critical('Cannot reach the DAQ (HV) at 01.')
+        logging.critical('Cannot reach the DAQ (HV).')
         return None
-    if not any([daq.SetInputRange(2.5) for tmp in range(3)]):   # any() is short-circuited
-        logger.critical('Unable to set DAQ (HV) input range.')
+    if not any([daq.SetInputRange(5) for tmp in range(3)]):   # any() is short-circuited
+        logging.critical('Unable to set DAQ (HV) input range.')
         return None
     return daq
 
 def initdaqlv():
-    logger.debug('Initialize low-volt DAQ')
-    daq = ADAM4018('02','/dev/ttyUSB1',9600)
+    logging.debug('Initializing low-volt DAQ')
+    daq = ADAM4018('{:02d}'.format(config.DAQ_LV_PORT[1]),config.DAQ_LV_PORT[0],config.DAQ_LV_PORT[2])
     if not daq.CheckModuleName():
-        logger.critical('Cannot reach the DAQ (LV) at 02.')
+        logging.critical('Cannot reach the DAQ (LV).')
         return None
     if not any([daq.SetInputRange(50e-3) for tmp in range(3)]):
-        logger.critical('Unable to set DAQ (LV) input range.')
+        logging.critical('Unable to set DAQ (LV) input range.')
         return None
     return daq
+
+
+logger.info('Checking HV DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_HV_PORT[1],config.DAQ_HV_PORT[0],config.DAQ_HV_PORT[2]))
+logger.info('PASS' if initdaqhv() is not None else 'FAIL')
+logger.info('Checking LV DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_LV_PORT[1],config.DAQ_LV_PORT[0],config.DAQ_LV_PORT[2]))
+logger.info('PASS' if initdaqlv() is not None else 'FAIL')
+logger.info('Checking F DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_F_PORT[1],config.DAQ_F_PORT[0],config.DAQ_F_PORT[2]))
+logger.info('PASS' if initdaqf() is not None else 'FAIL')
 
 
 logger.debug('binding 0MQ port...')
@@ -85,7 +81,6 @@ zsocket.bind(zmq_port)
 logger.info('Broadcasting at {}'.format(zmq_port))
 
 
-last_transmitted = datetime.utcnow()
 def send(d):
     try:
         if 'tag' in d:
@@ -95,208 +90,152 @@ def send(d):
             logger.debug(s)
         else:
             s = ''
-        global last_transmitted     # annoying.
-        last_transmitted = datetime.utcnow()
+        send.last_transmitted = datetime.utcnow()
         zsocket.send_string(s)
     except:
         logger.error(traceback.format_exc())
+send.last_transmitted = datetime.utcnow()
 
 
 daqhv = None
 daqlv = None
 # there gotta be a way to decouple these. TODO
 def taskDAQ():
-    """Poll the DAQ stuff: PAR, PSP, PIR and its thermistors"""
     global daqhv
     global daqlv
-    
-    pir = None
 
     try:
         if daqhv is None:
             daqhv = initdaqhv()
-        if daqhv is not None:
-            r = daqhv.ReadAll()
-            if r is not None:
-                par = {'tag':'PAR',
-                     'ts':dt2ts(),
-                     'par_V':2*r[5]}    # PAR connects to DAQ via a V/2 voltage divider (0.1% precision)
-                send(par)
+        rhv = daqhv.ReadAll()
+        if rhv is None:
+            logger.error('Unable to read HV DAQ')
+            daqhv = None
+            return
+            
+        ts = time.time()
 
-                pir = {'tag':'PIR',
-                       'ts':dt2ts(),
-                       'ir_mV':r[2]/1e-3,   # will be overwritten if LV read is successful
-                       't_case_V':r[6],
-                       't_dome_V':r[7]}
+        send({'tag':'PAR',
+               'ts':ts,
+               'PAR_V':rhv[config.DAQ_CH_MAP['PAR_V']]})
 
-                # rotronics temperature
-                rt = {'tag':'Rotronics',
-                      'ts':dt2ts(),
-                      'T':r[1]*100.0-30.0,  # convert from Volt to Deg.C
-                      'RH':r[2]*100}        # %RH
-                send(rt)
+        send({'tag':'Rotronics',
+              'ts':ts,
+              'Rotronics_T_C':rhv[config.DAQ_CH_MAP['Rotronics_T_C']]*100 - 30, # from Volt to Deg.C
+              'Rotronics_RH_percent':rhv[config.DAQ_CH_MAP['Rotronics_RH_percent']]*100})   # %RH
 
-                rmyrtd = {'tag':'RMYRTD',
-                          'ts':dt2ts(),
-                          'T':r[3]*100.0-50.0}  # [0,1] V maps to [-50,50] DegC
-                send(rmyrtd)
+        send({'tag':'RMYRTD',
+              'ts':ts,
+              'RMYRTD_T_C':rhv[config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50})  # [0,1] V maps to [-50,50] DegC
 
-                # bucket rain gauge
-                bucket = {'tag':'BucketRain',
-                          'ts':dt2ts(),
-                          'accumulation_mm':20*r[0]}    # map 0-2.5V to 0-50mm
-                send(bucket)
-            else:
-                logger.error('Unable to read the DAQ')
-                daqhv = None
-        else:
-            logger.error('DAQ (HV) initialization failed')
-    except:
-        logger.error(traceback.format_exc())
+        send({'tag':'BucketRain',
+              'ts':ts,
+              'BucketRain_accumulation_mm':20*rhv[config.DAQ_CH_MAP['BucketRain_accumulation_mm']]})    # map 0-2.5V to 0-50mm
 
-    try:
         if daqlv is None:
             daqlv = initdaqlv()
-        if daqlv is not None:
-            r = daqlv.ReadAll()
-            if r is not None:
-                psp = {'tag':'PSP',
-                     'ts':dt2ts(),
-                     'psp_mV':r[5]/1e-3}
-                send(psp)
+        rlv = daqlv.ReadAll()
+        if rlv is None:
+            logger.error('Unable to read LV DAQ')
+            daqlv = None
+            return
 
-                if pir is not None:
-                    pir.update({'tag':'PIR',
-                         'ts':dt2ts(),
-                         'ir_mV':r[2]/1e-3})
-                else:
-                    # HV DAQ read failed previously
-                    logger.warning('PIR thermistor read failed')
-                    pir = {'tag':'PIR',
-                         'ts':dt2ts(),
-                         'ir_mV':r[2]/1e-3,
-                         't_case_V':float('nan'),
-                         't_dome_V':float('nan')}
-                send(pir)
+        ts = time.time()
+        
+        send({'tag':'PIR',
+              'ts':ts,
+              'PIR_mV':rlv[config.DAQ_CH_MAP['PIR_mV']]/1e-3,   # from Volt to mV
+              'PIR_case_V':rhv[config.DAQ_CH_MAP['PIR_case_V']],
+              'PIR_dome_V':rhv[config.DAQ_CH_MAP['PIR_dome_V']]})
 
-                # and what if THIS failed? hardly ever, but still. TODO
-            else:
-                logger.error('Unable to read the DAQ (LV)')
-                daqlv = None
-        else:
-            logger.error('DAQ (LV) initialization failed')
+        send({'tag':'PSP',
+              'ts':ts,
+              'PSP_mV':rlv[config.DAQ_CH_MAP['PSP_mV']]/1e-3})  # from Volt to mV
+
     except:
-        logger.error(traceback.format_exc())
-
-
-'''def taskPortWind():
-    taskPortWind.dir = (taskPortWind.dir + 100*random()/10 - 5) % 360
-    try:
-        d = {'tag':'PortWind',
-             'ts':dt2ts(datetime.utcnow()),
-             'apparent_speed_mps':20*random(),
-             'apparent_direction_deg':taskPortWind.dir}
-        send(d)
-    except Exception as e:
-        logger.error(e)
-taskPortWind.dir = 360*random()
-
-def taskStarboardWind():
-    try:
-        d = {'tag':'StarboardWind',
-             'ts':dt2ts(datetime.utcnow()),
-             'apparent_speed_mps':20*random(),
-             'apparent_direction_deg':360*random()}
-        send(d)
-    except Exception as e:
-        logger.error(e)'''
+        logger.exception(traceback.format_exc())
 
 
 def taskUltrasonicWind():
     try:
-        with serial.Serial('/dev/ttyUSB7',9600,timeout=0.1) as s:
+        with serial.Serial(config.USWIND_PORT[0],config.USWIND_PORT[1],timeout=0.1) as s:
             #s.write('M0!\r')       # the sensor is slow at processing commands...
             for c in 'M0!\r':
                 s.write(c)
                 s.flushOutput()
             line = []
             for i in range(20):     # should be ~17 chr
-                r = s.read(size=1)
-                if len(r):
-                    line.extend(r)
-                if '\r' in line:
+                c = s.read(size=1)
+                if len(c):
+                    line.extend(c)
+                if c == '\r':
                     break
             #logger.debug(''.join(line))
             #logger.debug([ord(c) for c in line])
             line = ''.join(line).strip().split(' ')
             if '0' == line[0] and '*' == line[3][2]:    # '0' is the address of the sensor
                 d = {'tag':'UltrasonicWind',
-                     'ts':dt2ts(),
-                     'apparent_speed_mps':float(line[1]),
-                     'apparent_direction_deg':float(line[2])}
+                     'ts':time.time(),
+                     'UltrasonicWind_apparent_speed_mps':float(line[1]),
+                     'UltrasonicWind_apparent_direction_deg':float(line[2])}
                 send(d)
             else:
                 logger.error('Failed to read ultrasonic anemometer. {}'.format(line))
     except:
-        logger.error(traceback.format_exc())
+        logger.exception(traceback.format_exc())
 
 
-last_reset_day = datetime.utcnow().day
 def taskOpticalRain():
     try:
-        with serial.Serial('/dev/ttyUSB6',1200,timeout=1) as s:
+        with serial.Serial(config.OPTICALRAIN_PORT[0],config.OPTICALRAIN_PORT[1],timeout=0.1) as s:
             s.write('A')
             line = []
             for i in range(30):
-                r = s.read(size=1)
-                if len(r):
-                    line.append(r)
-                if '\r' in line:
+                c = s.read(size=1)
+                if len(c):
+                    line.append(c)
+                if c == '\r':
                     break
             line = ''.join(line).rstrip()
 
             d = {'tag':'OpticalRain',
-                 'ts':dt2ts(),
-                 'weather_condition':line[0:2],
-                 'instantaneous_mmphr':float(line[3:7]),
-                 'accumulation_mm':float(line[8:15])}
+                 'ts':time.time(),
+                 'OpticalRain_weather_condition':line[0:2],
+                 'OpticalRain_instantaneous_mmphr':float(line[3:7]),
+                 'OpticalRain_accumulation_mm':float(line[8:15])}
             send(d)
 
             # - - -
-
+            # reset accumulation at UTC midnight
             ts = datetime.utcnow()
-            global last_reset_day
-            if not ts.day == last_reset_day:
+            if not ts.day == taskOpticalRain.last_reset_day:
                 logging.info('Accumulation Data Reset')
                 s.write('R')
                 for i in range(10):
                     r = s.read()
                     if len(r):  # whatever it is, as long as the sensor responded
-                        last_reset_day = ts.day
+                        taskOpticalRain.last_reset_day = ts.day
                         break
     except:
-        logger.error(traceback.format_exc())
+        logger.exception(traceback.format_exc())
+taskOpticalRain.last_reset_day = datetime.utcnow().day
 
 
 def taskHeartbeat():
     try:
-        if datetime.utcnow() - last_transmitted > timedelta(seconds=60):
+        # global vs leaked static var of function... both evil.
+        if datetime.utcnow() - send.last_transmitted > timedelta(seconds=60):
             send({})
     except:
-        logger.error(traceback.format_exc())
+        logger.exception(traceback.format_exc())
 
 
-logger.debug('starting tasks...')
-LoopingCall(taskDAQ).start(1)
-#lcport = LoopingCall(taskPortWind)
-#lcport.start(1)
-#lcstbd = LoopingCall(taskStarboardWind)
-#lcstbd.start(1)
+LoopingCall(taskWDT).start(61,now=False)
+LoopingCall(taskDAQ).start(10)
+LoopingCall(lambda: taskMisc(send)).start(10,now=False)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
 LoopingCall(taskOpticalRain).start(1)
-LoopingCall(lambda: taskMisc(send)).start(5,now=False)
 #LoopingCall(lambda: taskBME280(send)).start(60,now=False)
-LoopingCall(taskWDT).start(121,now=False)
 LoopingCall(taskHeartbeat).start(10,now=False)
 
 
@@ -304,5 +243,4 @@ logger.debug('starting reactor()...')
 reactor.run()
 del daqhv
 del daqlv
-logging.info('Terminated')
-
+logger.info('Terminated')

@@ -2,7 +2,7 @@
 #subscribeto = ['localhost:9002']
 #data_dir = '/var/kmetlog/data'
 #log_dir = '/var/kmetlog/log'
-service_discovery_port = 9005
+#service_discovery_port = 9005
 #realtime_port = 9007
 
 # ADAM-4017
