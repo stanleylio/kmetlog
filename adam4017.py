@@ -166,7 +166,7 @@ if '__main__' == __name__:
     logger.setLevel(logging.DEBUG)
     
     import os
-    with ADAM4017('07','COM5',9600) as daq:
+    with ADAM4017('07','/dev/ttyUSB0',9600) as daq:
         #print daq.cmdConfigurationStatus()
         #print daq.cmdReadModuleName()
         #print daq.cmdReadFirmwareVersion()

@@ -10,8 +10,8 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 sys.path.append('..')
 from node.parse_support import pretty_print
-from kmetlog.storage import storage
-from os.path import exists,join
+from node.storage.storage2 import storage
+from os.path import exists,join,expanduser
 from socket import gethostname
 from importlib import import_module
 
@@ -54,7 +54,7 @@ poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
 
-store = storage('root',open('mysql_cred').read().strip(),'kmetlog')
+store = storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
 
 
 # mapping new tags to old tags. temporary hack for the demo. won't be needing this on the new logger.
