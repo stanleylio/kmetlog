@@ -17,7 +17,7 @@
 # Run this script with the argument 'q' and it would return the list of known hosts offering
 # the 'kmet1' service.
 #
-# The Protocol (on UDP 9005):
+# The Protocol (on UDP PORT):
 # To find other hosts, broadcast the string (using topic='kmet1' as example)
 #   {"service_query":"kmet1"}
 # Publishers that got this message would respond with the string (using kmet-bbb as example)
@@ -49,6 +49,9 @@
 # All Rights Reserved, 2016
 import sys,json,subprocess,traceback,socket,logging,time
 from twisted.internet.protocol import DatagramProtocol
+
+
+PORT = 9005
 
 
 topic = 'kmet1'
@@ -148,7 +151,7 @@ class ServiceDiscovery(DatagramProtocol):
 Whoever publishing this topic would respond with its own IP."""
         logging.debug('Broadcasting query...')
         line = json.dumps({'service_query':topic},separators=(',',':'))
-        self.transport.write(line,('<broadcast>',9005))
+        self.transport.write(line,('<broadcast>',PORT))
 
     def get_publisher_list(self):
         # remove stale entries
@@ -168,17 +171,18 @@ def get_publisher_list():
     """Ask the local daemon for a list of known hosts with the kmet1 service"""
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     sock.settimeout(max_response_time + 1)
-    sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',9005))
+    sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',PORT))
     print('waiting for response...')
     try:
         d,h = sock.recvfrom(1024)
         logging.debug(d + ' from ' + repr(h))
         return json.loads(d)
     except socket.timeout:
-        logging.warning('Daemon not running. Try "python service_discovery.py 1" first.')
+        logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
+        return []
     except:
         logging.error(traceback.format_exc())
-        return None
+        return []
 
 
 if '__main__' == __name__:
@@ -190,7 +194,7 @@ if '__main__' == __name__:
 
     if len(sys.argv) == 1:
         p = ServiceDiscovery()
-        reactor.listenUDP(9005,p)
+        reactor.listenUDP(PORT,p)
         p.service_query()
         reactor.run()
     elif sys.argv[1] == 'q':
