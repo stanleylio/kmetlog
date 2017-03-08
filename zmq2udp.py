@@ -22,15 +22,15 @@ PERIOD = 1     # seconds
 '''DEBUG,INFO,WARNING,ERROR,CRITICAL'''
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # "global"?
-fh = logging.handlers.RotatingFileHandler('/var/kmetlog/log/zmq2udp.log',maxBytes=1e7,backupCount=5)
-fh.setLevel(logging.INFO)
+#fh = logging.handlers.RotatingFileHandler('/var/kmetlog/log/zmq2udp.log',maxBytes=1e7,backupCount=5)
+#fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
-fh.setFormatter(formatter)
+#fh.setFormatter(formatter)
 ch.setFormatter(formatter)
-logger.addHandler(fh)
+#logger.addHandler(fh)
 logger.addHandler(ch)
 
 
@@ -98,27 +98,27 @@ def taskBroadcast():
     # "What's that \x00 at the end" BECAUSE SISCON WANTS IT THAT WAY. NO MORE QUESTIONS.
     s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
-        D.get('RMYRTD',{}).get('T',0),                          # RTD (Deg.C)
-        D.get('Rotronics',{}).get('RH',0),                      # Humidity (%)
-        D.get('Rotronics',{}).get('T',0),                       # Humidity_temperature
-        D.get('BucketRain',{}).get('accumulation_mm',0),        # Bucket_rain_gauge
-        D.get('PSP',{}).get('psp_mV',0),                        # PSP (mV)
-        D.get('PIR',{}).get('ir_mV',0),                         # PIR (mV)
-        D.get('PIR',{}).get('t_case_V',0),                      # PIR Case thermistor (V)
-        D.get('PIR',{}).get('t_dome_V',0),                      # PIR Dome thermistor (V)
-        D.get('Misc',{}).get('RadFan2_rpm',0),                  # RTD fan speed
-        D.get('Misc',{}).get('RadFan1_rpm',0),                  # Humidity fan speed
-        D.get('PAR',{}).get('par_V',0),                         # PAR (V)
-        D.get('UltrasonicWind',{}).get('apparent_speed_mps',0)*1.94384, # Relative wind speed (ultrasonic, m/s to knot)
-        D.get('UltrasonicWind',{}).get('apparent_direction_deg',0), # Relative wind direction
-        D.get('OpticalRain',{}).get('weather_condition','  '),  # Weather condition (optical)
-        D.get('OpticalRain',{}).get('instantaneous_mmphr',0),   # Precipitation (optical, mm)
-        D.get('OpticalRain',{}).get('accumulation_mm',0),       # Precipitation accumulation (optical)
+        D.get('RMYRTD',{}).get('RMYRTD_T_C',0),                 # RTD (Deg.C)
+        D.get('Rotronics',{}).get('Rotronics_RH_percent',0),    # Humidity (%)
+        D.get('Rotronics',{}).get('Rotronics_T_C',0),           # Humidity_temperature
+        D.get('BucketRain',{}).get('BucketRain_accumulation_mm',0), # Bucket_rain_gauge
+        D.get('PSP',{}).get('PSP_mV',0),                        # PSP (mV)
+        D.get('PIR',{}).get('PIR_mV',0),                        # PIR (mV)
+        D.get('PIR',{}).get('PIR_case_V',0),                    # PIR Case thermistor (V)
+        D.get('PIR',{}).get('PIR_dome_V',0),                    # PIR Dome thermistor (V)
+        D.get('Misc',{}).get('RMYRTD_Fan_rpm',0),               # RTD fan speed
+        D.get('Misc',{}).get('Rotronics_Fan_rpm',0),            # Humidity fan speed
+        D.get('PAR',{}).get('PAR_V',0),                         # PAR (V)
+        D.get('UltrasonicWind',{}).get('UltrasonicWind_apparent_speed_mps',0)*1.94384,  # Relative wind speed (ultrasonic, m/s to knot)
+        D.get('UltrasonicWind',{}).get('UltrasonicWind_apparent_direction_deg',0),      # Relative wind direction
+        D.get('OpticalRain',{}).get('OpticalRain_weather_condition','  '),  # Weather condition (optical)
+        D.get('OpticalRain',{}).get('OpticalRain_instantaneous_mmphr',0),   # Precipitation (optical, mm)
+        D.get('OpticalRain',{}).get('OpticalRain_accumulation_mm',0),       # Precipitation accumulation (optical)
         )
     send(s)
     print s.strip()
     for k in D.keys():
-        if time.time() - D[k]['_ReceptionTime'] > 3*PERIOD:
+        if time.time() - D[k]['_ReceptionTime'] > 5*PERIOD:
             del D[k]
     #D = {}
 
