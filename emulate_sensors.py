@@ -116,18 +116,19 @@ def taskBME280Sample():
     send(d)
 
 
-LC = [LoopingCall(taskPIR),
-      LoopingCall(taskPAR),
-      LoopingCall(taskPSP),
+LC = [#LoopingCall(taskPIR),
+      #LoopingCall(taskPAR),
+      #LoopingCall(taskPSP),
       #LoopingCall(taskPortWind),
       #LoopingCall(taskStarboardWind),
-      LoopingCall(taskUltrasonicWind),
+      #LoopingCall(taskUltrasonicWind),
       LoopingCall(taskOpticalRain),
-      LoopingCall(taskBME280Sample),
-      LoopingCall(taskRotronics),
-      LoopingCall(taskRMYRTD),
-      LoopingCall(taskBucketRain),
-      LoopingCall(taskMisc),]
+      #LoopingCall(taskBME280Sample),
+      #LoopingCall(taskRotronics),
+      #LoopingCall(taskRMYRTD),
+      #LoopingCall(taskBucketRain),
+      #LoopingCall(taskMisc),
+      ]
 for lc in LC:
     #lc.start(50*random()/10. + 1,now=False)
     lc.start(1,now=False)
