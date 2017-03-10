@@ -9,11 +9,11 @@ import zmq,sys,json,logging,traceback,time,random
 import logging.handlers
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
+from os.path import exists,join,expanduser
+from socket import gethostname
 sys.path.append('..')
 from node.parse_support import pretty_print
 from node.storage.storage2 import storage
-from os.path import exists,join,expanduser
-from socket import gethostname
 from config.config_support import import_node_config
 
 
@@ -31,7 +31,7 @@ logger.addHandler(handler)
 
 
 # ZMQ IPC stuff
-topic = u'kmet1_'
+topic = u'kmet1'
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
 for feed in config.subscribeto:
@@ -61,16 +61,15 @@ def taskSampler():
 #                return
 # - - - - -
             
-            m = m.split(',',1)  # ignore the "kmet1_BLAH," part
+            m = m.split(',',1)  # ignore the "kmet1," part
             d = json.loads(m[1])
             table = d['tag']
-           tmp = {k:d[k] for k in set(store.get_list_of_columns(table))}
+            tmp = {k:d[k] for k in set(store.get_list_of_columns(table))}
             store.insert(table,tmp)
             pretty_print(tmp)
     except:
         logger.exception(traceback.format_exc())
         logger.exception(m)
-
 
 LoopingCall(taskSampler).start(0.001)
 reactor.run()
