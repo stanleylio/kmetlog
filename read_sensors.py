@@ -84,16 +84,15 @@ logger.info('Broadcasting at {}'.format(zmq_port))
 def send(d):
     try:
         if 'tag' in d:
-            topic = d['tag']
             s = json.dumps(d,separators=(',',':'))
-            s = 'kmet1_{topic},{msg}'.format(msg=s,topic=topic)
+            s = 'kmet1,{msg}'.format(msg=s)
             logger.info(s)
         else:
             s = ''
         send.last_transmitted = datetime.utcnow()
         zsocket.send_string(s)
     except:
-        logger.error(traceback.format_exc())
+        logger.exception(traceback.format_exc())
 send.last_transmitted = datetime.utcnow()
 
 
