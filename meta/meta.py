@@ -24,7 +24,7 @@ conf = [
     ]
 
 create_table(conf,'_meta',dbname='kmetlog')
-print store.get_list_of_tables()
+print(store.get_list_of_tables())
 
 r = psutil.disk_usage('/')
 print '{},{},{},{}'.format(time.time(),r.total,r.used,r.free)
@@ -51,4 +51,4 @@ for row in out.strip().split('\n'):
         row = filter(lambda x: len(x),row.split(' '))
         total,used = row[1],row[3]
 
-print '{},{},{}'.format(time.time(),total,used)
+print('{},{},{}'.format(time.time(),total,used))
