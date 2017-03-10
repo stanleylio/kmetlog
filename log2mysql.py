@@ -21,12 +21,13 @@ config = import_node_config()
 
 
 #'DEBUG,INFO,WARNING,ERROR,CRITICAL'
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 handler = logging.handlers.SysLogHandler(address='/dev/log')
-#logging.Formatter.converter = time.gmtime
-#formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
+logging.Formatter.converter = time.gmtime
+formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
@@ -50,6 +51,7 @@ def taskSampler():
     try:
         socks = dict(poller.poll(100))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
+            print('= = = = =')
             #m = zsocket.recv()
             m = zsocket.recv_string()
             logger.debug(m)
