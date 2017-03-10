@@ -35,10 +35,13 @@ config = import_node_config()
 
 
 #'DEBUG,INFO,WARNING,ERROR,CRITICAL'
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 handler = logging.handlers.SysLogHandler(address='/dev/log')
+logging.Formatter.converter = time.gmtime
+formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
@@ -237,7 +240,7 @@ def taskHeartbeat():
         logger.exception(traceback.format_exc())
 
 
-LoopingCall(taskWDT).start(61,now=False)
+LoopingCall(taskWDT).start(59,now=False)
 LoopingCall(taskDAQ).start(1)
 LoopingCall(lambda: taskMisc(send)).start(10,now=False)
 LoopingCall(taskUltrasonicWind).start(1,now=False)
