@@ -36,7 +36,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 
-topic = u'kmet1_'
+topic = u'kmet1'
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
 zsocket.connect('tcp://127.0.0.1:9002')

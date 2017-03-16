@@ -1,6 +1,4 @@
-# is anyone even using this?
 # used on kmet-rpi1, preping for kmet-bbb3
-# WORK IN PROGRESS
 #
 # Stanley H.I. Lio
 # hlio@hawaii.edu
@@ -43,15 +41,13 @@ zsocket.setsockopt_string(zmq.SUBSCRIBE,topic)
 poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
-
 store = storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
-
 
 def taskSampler():
     try:
-        socks = dict(poller.poll(100))
+        socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
-            print('= = = = =')
+            print('= = = = = = = = = =')
             #m = zsocket.recv()
             m = zsocket.recv_string()
             logger.debug(m)
@@ -63,8 +59,8 @@ def taskSampler():
 #                return
 # - - - - -
             
-            m = m.split(',',1)  # ignore the "kmet1," part
-            d = json.loads(m[1])
+            tmp = m.split(',',1)  # ignore the "kmet1," part
+            d = json.loads(tmp[1])
             table = d['tag']
             tmp = {k:d[k] for k in set(store.get_list_of_columns(table))}
             store.insert(table,tmp)
@@ -73,6 +69,7 @@ def taskSampler():
         logger.exception(traceback.format_exc())
         logger.exception(m)
 
+logger.info('log2mysql is ready')
 LoopingCall(taskSampler).start(0.001)
 reactor.run()
 zsocket.close()
