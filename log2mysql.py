@@ -47,7 +47,7 @@ def taskSampler():
     try:
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
-            print('= = = = =')
+            print('= = = = = = = = = =')
             #m = zsocket.recv()
             m = zsocket.recv_string()
             logger.debug(m)
