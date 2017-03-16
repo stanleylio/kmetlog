@@ -1,7 +1,9 @@
+# Customized hack just for the old siscon software
 # Relay local met data to siscon (to emulate/replace the campbell logger)
-# Handles data collection, formatting and UDP broadcast
-# The output is a space-delimited string that the old siscon program expects
-# To be run on kmet-bbb up on the met. mast
+# Task: Listen for zmq broadcast, store latest readings as they come
+# in, periodically format and broadcast readings via UDP.
+# The output is a space-delimited string that the old siscon program expects.
+# To be run on kmet-bbb up on the met. mast.
 #
 # Stanley H.I. Lio
 # hlio@hawaii.edu
