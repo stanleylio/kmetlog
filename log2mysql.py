@@ -3,7 +3,7 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved. 2017
-import zmq,sys,json,logging,traceback,time,random
+import zmq,sys,json,logging,traceback,time,random,MySQLdb
 import logging.handlers
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -41,7 +41,9 @@ zsocket.setsockopt_string(zmq.SUBSCRIBE,topic)
 poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
-store = storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
+def init_storage():
+    store = storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
+init_storage()
 
 def taskSampler():
     try:
@@ -65,6 +67,9 @@ def taskSampler():
             tmp = {k:d[k] for k in set(store.get_list_of_columns(table))}
             store.insert(table,tmp)
             pretty_print(tmp)
+    except MySQLdb.OperationalError,e:
+        if e.args[0] in (MySQLdb.constants.CR.SERVER_GONE_ERROR,MySQLdb.constants.CR.SERVER_LOST):
+            init_storage()
     except:
         logger.exception(traceback.format_exc())
         logger.exception(m)
