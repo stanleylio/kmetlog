@@ -42,10 +42,11 @@ poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
 def init_storage():
-    store = storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
-init_storage()
+    return storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
+store = init_storage()
 
 def taskSampler():
+    global store
     try:
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
@@ -69,7 +70,7 @@ def taskSampler():
             pretty_print(tmp)
     except MySQLdb.OperationalError,e:
         if e.args[0] in (MySQLdb.constants.CR.SERVER_GONE_ERROR,MySQLdb.constants.CR.SERVER_LOST):
-            init_storage()
+            store = init_storage()
     except:
         logger.exception(traceback.format_exc())
         logger.exception(m)
