@@ -1,5 +1,3 @@
-# used on kmet-rpi1, preping for kmet-bbb3
-#
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved. 2017
