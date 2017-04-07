@@ -1,9 +1,10 @@
 # Service discovery stuff
 #
 # To run this as a daemon:
-#   python service_discovery.py
+#   python service_discovery.py --service_offered service1:port1 service2:port2
+#
 # To initiate a search:
-#   python service_discovery.py kmet1
+#   python service_discovery.py --search kmet1
 #
 # Three jobs:
 #   It responds to requests from other hosts looking for services;
@@ -13,17 +14,15 @@
 #
 # ... wouldn't need this if DNS works...
 #
-# Run this script directly and it would handle the query-respond as a daemon;
-# Run this script with a service name as argument and it would return the list of hosts
-# offering that service.
-#
 # The Protocol (on UDP PORT):
 # To find other hosts, broadcast the string (using topic='kmet1' as example)
 #   {"service_query":"kmet1"}
-# Publishers that got this message would respond with the string (using kmet-bbb as example)
-#   {"hostname":"kmet-bbb","services":[["kmet1","192.168.1.109",9002]]}
-# To see the list of hosts with the kmet1 service, send
-#   {"get_service_listing":"kmet1"}
+# Publishers that get this message would respond with the string (using kmet-bbb as example)
+#   {"hostname":"kmet-bbb","ip":"192.168.1.109","service_response":[["kmet1",9002],...]}
+#
+# For clients: to initiate a search for the kmet1 service, send to the daemon
+#   {"get_service_listing":"kmet1","id":"some random unique string"}
+# "id" is optional.
 #
 # - - - - -
 # A publisher can publish multiple topics at multiple ports, and a subscriber can subscribe
@@ -36,7 +35,7 @@
 # interested in?
 #
 # In principle, this host does not need to maintain an up-to-date list of known hosts at all
-# time - you can initiate a query broadcast when such list is needed. Not storing a list
+# time - you can initiate a query broadcast only when such list is needed. Not storing a list
 # also means nothing would go stale, so there's no timestamps to keep track of. Small delay,
 # small price to pay.
 #
@@ -84,7 +83,7 @@ class ServiceDiscovery(DatagramProtocol):
 
                 logging.debug('Responding to query from ' + host)
                 ip = getIP()
-                d = {'hostname':self._hostname,'ip':ip,'service_response':self._services_offered}
+                d = {'hostname':self._hostname,'ip':ip,'service_response':self._service_offered}
                 line = json.dumps(d,separators=(',',':'))
                 self.transport.write(line,(host,port))
 
@@ -161,7 +160,8 @@ def get_publisher_list(service,max_response_time=1):
                 d,h = sock.recvfrom(1024)
                 logging.debug(d + ' from ' + repr(h))
                 tmp = json.loads(d)
-                if 'service_listing' in tmp and tmp.get('id',None) == tag:
+                # id is optional - accept anything if id is not included
+                if 'service_listing' in tmp and tmp.get('id',tag) == tag:
                     return tmp['service_listing']
             except socket.timeout:
                 i += 1
@@ -202,5 +202,8 @@ if '__main__' == __name__:
         reactor.listenUDP(PORT,p)
         reactor.run()
     else:
-        for r in get_publisher_list(sys.argv[1],max_response_time=1):
+        R = get_publisher_list(args.search,max_response_time=1)
+        for r in R:
             print(r)
+        if len(R) <= 0:
+            print('No service provider found.')
