@@ -3,7 +3,7 @@
 # To run this as a daemon:
 #   python service_discovery.py
 # To initiate a search:
-#   python service_discovery.py q
+#   python service_discovery.py kmet1
 #
 # Three jobs:
 #   It responds to requests from other hosts looking for services;
@@ -115,9 +115,8 @@ class ServiceDiscovery(DatagramProtocol):
                     tmp = {'service_listing':self.get_publisher_list()}
                     if 'id' in d:
                         tmp['id'] = d['id']
-                    
                     self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
-                reactor.callLater(d.get('max_response_time',1)+1,callback)
+                reactor.callLater(d.get('max_response_time',1),callback)
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
@@ -145,37 +144,38 @@ Whoever publishing this topic would respond with its own IP."""
                 pl.append('{}:{}'.format(ip,service[1]))
         return pl
 
-def get_publisher_list(service,max_response_time=2):
+def get_publisher_list(service,max_response_time=1):
     """Ask the local daemon for a list of known hosts with the given service"""
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    sock.settimeout(max_response_time)
+    #sock.settimeout(max_response_time)
+    sock.settimeout(1)  # this is waiting for the daemon, not the daemon waiting for other hosts.
     tag = uuid.uuid4().hex
     tmp = {'get_service_listing':service,'max_response_time':max_response_time,'id':tag}
     tmp = json.dumps(tmp,separators=(',',':'))
     sock.sendto(tmp,('127.0.0.1',PORT))
     logging.debug('waiting for response...')
     try:
-        for i in range(5):
+        i = 0
+        while True: # wait for daemon response; ignore other traffic
             try:
                 d,h = sock.recvfrom(1024)
+                logging.debug(d + ' from ' + repr(h))
+                tmp = json.loads(d)
+                if 'service_listing' in tmp and tmp.get('id',None) == tag:
+                    return tmp['service_listing']
             except socket.timeout:
-                pass
-            logging.debug(d + ' from ' + repr(h))
-            tmp = json.loads(d)
-            if 'service_listing' in tmp and tmp.get('id',None) == tag:
-                return tmp['service_listing']
-        return []
-    #except socket.timeout:
-    #    logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
-    #    return []
+                i += 1
+                logging.debug('waiting for daemon {}'.format(i))
+                if i >= 5:
+                    logging.error('Daemon not running / timeout. "python service_discovery.py" if daemon is not running.')
+                    return []
     except:
         logging.error(traceback.format_exc())
-        return []
+    return []
 
 
 if '__main__' == __name__:
     from twisted.internet import reactor
-    import sys
 
     #logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO)
