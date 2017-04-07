@@ -2,11 +2,11 @@
 #
 # To run this as a daemon:
 #   python service_discovery.py
-# To initiate a service search:
+# To initiate a search:
 #   python service_discovery.py q
 #
 # Three jobs:
-#   It responds to requests from other hosts looking for the 'kmet1' service;
+#   It responds to requests from other hosts looking for services;
 #   It listens for service announcements from other hosts and maintains a list of hosts offering that service;
 #   It serves that list of hosts offering the 'kmet1' service for processes on this machine (though there's
 #       nothing stopping the other hosts from querying for that list).
@@ -14,8 +14,8 @@
 # ... wouldn't need this if DNS works...
 #
 # Run this script directly and it would handle the query-respond as a daemon;
-# Run this script with the argument 'q' and it would return the list of known hosts offering
-# the 'kmet1' service.
+# Run this script with a service name as argument and it would return the list of hosts
+# offering that service.
 #
 # The Protocol (on UDP PORT):
 # To find other hosts, broadcast the string (using topic='kmet1' as example)
@@ -36,8 +36,9 @@
 # interested in?
 #
 # In principle, this host does not need to maintain an up-to-date list of known hosts at all
-# time - you can initiate a query broadcast when such list is needed. Small delay, small
-# price to pay.
+# time - you can initiate a query broadcast when such list is needed. Not storing a list
+# also means nothing would go stale, so there's no timestamps to keep track of. Small delay,
+# small price to pay.
 #
 # The host would still need a daemon to respond to query broadcasts from other hosts.
 #
@@ -46,17 +47,15 @@
 # hlio@hawaii.edu
 # Ocean Technology Group
 # SOEST, University of Hawaii
-# All Rights Reserved, 2016
-import sys,json,subprocess,traceback,socket,logging,time
+# All Rights Reserved, 2017
+import sys,json,subprocess,traceback,socket,logging,time,uuid
 from twisted.internet.protocol import DatagramProtocol
 
 
 PORT = 9005
 
 
-topic = 'kmet1'
-best_before = 5*60      # second. a service listing is considered stale if it was last updated over this many seconds ago
-max_response_time = 2   # # of seconds to wait for service providers to respond
+services_offered = [('kmet1',9002)]
 
 
 def getIP():
@@ -75,111 +74,100 @@ class ServiceDiscovery(DatagramProtocol):
         self.transport.setBroadcastAllowed(True)
     
     def datagramReceived(self,data,(host,port)):
-        """Process incoming messages. Expecting two types of messages:
-1. it's a "service_query": respond if it's looking for the topic 'kmet1';
-2. it's a "service_response": add this publisher if it has the topic 'kmet1'"""
-        #logging.debug((data,host,port))
-        #self.transport.write(data,(host,port))
         try:
             d = json.loads(data)
 
-            #if d['hostname'] == self._hostname:   # exclude self
-                #logging.debug('ignore msg from oneself: ' + data)
-                #return
+            if 'service_query' in d:
+                if d['service_query'] not in [tmp[0] for tmp in services_offered]:
+                    logging.debug('Not a service I offer: {}'.format(d['service_query']))
+                    return
+
+                logging.debug('Responding to query from ' + host)
+                ip = getIP()
+                d = {'hostname':self._hostname,'ip':ip,'service_response':services_offered}
+                line = json.dumps(d,separators=(',',':'))
+                self.transport.write(line,(host,port))
 
             if 'service_response' in d:
                 if 'hostname' not in d:
                     logging.debug('missing "hostname": ' + data)
                     return
+                if 'ip' not in d:
+                    logging.debug('missing "ip": ' + data)
+                    return
+                if d['ip'] != host:
+                    logging.debug('announcement not coming from the publisher itself: ' + data)
+                    return
+                
+                self._publishers[d['ip']] = (time.time(),d['service_response'])
 
-                # basically it's not up to the driver to decide whether to list oneself as a publisher
-                for s in d['service_response']:
-                    if topic != s[0]:
-                        logging.debug("not what I'm interested in: " + data)
-                        return
-                    
-                    # No spoofing? Now only the publisher itself can announce its own presence.
-                    # That means you can't have dedicated "service listing provider" (which
-                    # doesn't itself publish).
-                    #
-                    # If only publisher itself can announce its own presence, then the response
-                    # doesn't have to include ip or port since you know where it comes from, and
-                    # the port is fixed across the entire project.
-                    if s[1] != host:
-                        logging.debug("announcement not coming from the publisher itself: " + data)
-                        return
-
-                    #logging.info('Found publisher: ' + str(s))
-                    if d['hostname'] not in self._publishers:
-                        logging.info('Added publisher: ' + d['hostname'] + ', ' + str(s))
-                    
-                    self._publishers[d['hostname']] = (time.time(),s[1],s[2])
-
-                    #print self._publishers
-
-            elif d.get('service_query',None) == topic:
-                logging.debug('Responding to query from ' + host)
-                ip = getIP()
-
-                d = {'hostname':self._hostname,'service_response':[[topic,ip,9002]]}
-                # in an alternate universe...
-                #d = {'hostname':self._hostname,'service_response':[topic1,topic2,topic3...]}
-                line = json.dumps(d,separators=(',',':'))
-
-                self.transport.write(line,(host,port))
-
-            elif d.get('get_service_listing',None) == topic:
-                self.service_query()    # query service providers only on demand
+            if 'get_service_listing' in d:
+                self.service_query(d['get_service_listing'])
+                # query service providers on demand
                 # problem is, the service_response won't get processed until this returns
                 # so don't sleep, use callLater()
-                #time.sleep(max_response_time)
-                #tmp = self.get_publisher_list()
-                #self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
-                def tmp():
-                    tmp = self.get_publisher_list()
+
+                self._publishers = {}
+                line = json.dumps({'service_query':d['get_service_listing']},separators=(',',':'))
+                self.transport.write(json.dumps(line,separators=(',',':')),(host,port))
+
+                def callback():
+                    tmp = {'service_listing':self.get_publisher_list()}
+                    if 'id' in d:
+                        tmp['id'] = d['id']
+                    
                     self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
-                reactor.callLater(max_response_time,tmp)
-            else:
-                #logging.debug(data)
-                pass
+                reactor.callLater(d.get('max_response_time',1)+1,callback)
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
 
-    def service_query(self,topic='kmet1'):
+    def service_query(self,topic):
         """Query everyone for the given topic via UDP broadcast.
 Whoever publishing this topic would respond with its own IP."""
         logging.debug('Broadcasting query...')
+        #tag = uuid.uuid4().hex
+        #self._ongoing_queries.append(tag)
         line = json.dumps({'service_query':topic},separators=(',',':'))
         self.transport.write(line,('<broadcast>',PORT))
 
     def get_publisher_list(self):
-        # remove stale entries
-        for k in self._publishers.keys():
-            host = self._publishers[k]
-            if time.time() - host[0] > best_before:
-                 del self._publishers[k]
+        '''# remove stale entries
+        for ip in self._publishers:
+            if time.time() - self._publishers[ip][0] > best_before:
+                 del self._publishers[ip]'''
         
         # create a list
         pl = []
-        for k in self._publishers.keys():
-            host = self._publishers[k]
-            pl.append([k,'{}:{}'.format(host[1],host[2])])
+        for ip in self._publishers:
+            services = self._publishers[ip][1]
+            for service in services:
+                pl.append('{}:{}'.format(ip,service[1]))
         return pl
 
-def get_publisher_list():
-    """Ask the local daemon for a list of known hosts with the kmet1 service"""
+def get_publisher_list(service,max_response_time=2):
+    """Ask the local daemon for a list of known hosts with the given service"""
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    sock.settimeout(max_response_time + 1)
-    sock.sendto('{"get_service_listing":"kmet1"}',('127.0.0.1',PORT))
-    print('waiting for response...')
+    sock.settimeout(max_response_time)
+    tag = uuid.uuid4().hex
+    tmp = {'get_service_listing':service,'max_response_time':max_response_time,'id':tag}
+    tmp = json.dumps(tmp,separators=(',',':'))
+    sock.sendto(tmp,('127.0.0.1',PORT))
+    logging.debug('waiting for response...')
     try:
-        d,h = sock.recvfrom(1024)
-        logging.debug(d + ' from ' + repr(h))
-        return json.loads(d)
-    except socket.timeout:
-        logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
+        for i in range(5):
+            try:
+                d,h = sock.recvfrom(1024)
+            except socket.timeout:
+                pass
+            logging.debug(d + ' from ' + repr(h))
+            tmp = json.loads(d)
+            if 'service_listing' in tmp and tmp.get('id',None) == tag:
+                return tmp['service_listing']
         return []
+    #except socket.timeout:
+    #    logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
+    #    return []
     except:
         logging.error(traceback.format_exc())
         return []
@@ -195,8 +183,7 @@ if '__main__' == __name__:
     if len(sys.argv) == 1:
         p = ServiceDiscovery()
         reactor.listenUDP(PORT,p)
-        p.service_query()
         reactor.run()
-    elif sys.argv[1] == 'q':
-        for r in get_publisher_list():
-            print r
+    else:
+        for r in get_publisher_list(sys.argv[1],max_response_time=1):
+            print(r)
