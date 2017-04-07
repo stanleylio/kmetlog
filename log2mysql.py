@@ -34,8 +34,8 @@ context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
 
 
-a = set(config.subscribeto)     # feeds found in config
-b = set([tmp[1] for tmp in get_publisher_list()])   # feeds found in the network
+a = set(config.subscribeto)         # feeds found in config
+b = set(get_publisher_list(topic))  # feeds found in the network
 feeds = a.union(b)
 for feed in feeds:
     feed = 'tcp://' + feed
