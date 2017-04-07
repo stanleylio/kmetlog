@@ -177,8 +177,8 @@ if '__main__' == __name__:
     from twisted.internet import reactor
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
-    #logging.basicConfig(level=logging.INFO)
+    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     if len(sys.argv) == 1:
         p = ServiceDiscovery()
