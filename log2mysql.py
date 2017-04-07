@@ -11,6 +11,7 @@ sys.path.append('..')
 from node.parse_support import pretty_print
 from node.storage.storage2 import storage
 from config.config_support import import_node_config
+from service_discovery import get_publisher_list
 
 
 config = import_node_config()
@@ -31,7 +32,12 @@ logger.addHandler(handler)
 topic = u'kmet1'
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
-for feed in config.subscribeto:
+
+
+a = set(config.subscribeto)     # feeds found in config
+b = set([tmp[1] for tmp in get_publisher_list()])   # feeds found in the network
+feeds = a.union(b)
+for feed in feeds:
     feed = 'tcp://' + feed
     logger.info('subscribing to ' + feed)
     zsocket.connect(feed)
