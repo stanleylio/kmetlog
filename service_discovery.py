@@ -55,9 +55,6 @@ from twisted.internet.protocol import DatagramProtocol
 PORT = 9005
 
 
-services_offered = [('kmet1',9002)]
-
-
 def getIP():
     proc = subprocess.Popen(['hostname -I'],stdout=subprocess.PIPE,shell=True)
     out,err = proc.communicate()
@@ -69,6 +66,9 @@ def getIP():
 class ServiceDiscovery(DatagramProtocol):
     _hostname = socket.gethostname()
     _publishers = {}     # all currently known publishers
+
+    def __init__(self,service_offered):
+        self._service_offered = service_offered
     
     def startProtocol(self):
         self.transport.setBroadcastAllowed(True)
@@ -78,13 +78,13 @@ class ServiceDiscovery(DatagramProtocol):
             d = json.loads(data)
 
             if 'service_query' in d:
-                if d['service_query'] not in [tmp[0] for tmp in services_offered]:
+                if d['service_query'] not in [tmp[0] for tmp in self._service_offered]:
                     logging.debug('Not a service I offer: {}'.format(d['service_query']))
                     return
 
                 logging.debug('Responding to query from ' + host)
                 ip = getIP()
-                d = {'hostname':self._hostname,'ip':ip,'service_response':services_offered}
+                d = {'hostname':self._hostname,'ip':ip,'service_response':self._services_offered}
                 line = json.dumps(d,separators=(',',':'))
                 self.transport.write(line,(host,port))
 
@@ -176,12 +176,29 @@ def get_publisher_list(service,max_response_time=1):
 
 if '__main__' == __name__:
     from twisted.internet import reactor
+    import argparse
 
     #logging.basicConfig(level=logging.DEBUG)
     logging.basicConfig(level=logging.INFO)
 
-    if len(sys.argv) == 1:
-        p = ServiceDiscovery()
+    parser = argparse.ArgumentParser(description='Service discovery related.')
+    parser.add_argument('--service_offered',default=[],nargs='+',\
+                        help='Example: --service_offered kmet1:9002 debug2:9003 ...')
+    parser.add_argument('--search',help='Example: --search kmet1')
+    args = parser.parse_args()
+
+    #print(args.search)
+
+    # --service_offered is to be kmet1:9002 debug2:9003 ...
+    # service_offered is to be [(service_name,port2),(service2_name,port2),...]
+
+    service_offered = [tmp.split(':') for tmp in args.service_offered]
+    service_offered = [(tmp[0],int(tmp[1])) for tmp in service_offered]
+    #print(service_offered)
+    #service_offered = [('kmet1',9002)]
+    
+    if args.search is None:
+        p = ServiceDiscovery(service_offered)
         reactor.listenUDP(PORT,p)
         reactor.run()
     else:
