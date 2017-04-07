@@ -202,7 +202,7 @@ if '__main__' == __name__:
         reactor.listenUDP(PORT,p)
         reactor.run()
     else:
-        R = get_publisher_list(args.search,max_response_time=1)
+        R = get_publisher_list(args.search,max_response_time=3)
         for r in R:
             print(r)
         if len(R) <= 0:

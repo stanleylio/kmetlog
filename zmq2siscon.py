@@ -14,10 +14,8 @@ from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 
 
-
 UDP_PORT = 5642
 PERIOD = 1     # seconds
-
 
 
 # Logging
