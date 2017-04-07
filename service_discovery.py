@@ -2,20 +2,20 @@
 #
 # To run this as a daemon:
 #   python service_discovery.py
-# To initiate a service search:
+# To initiate a search:
 #   python service_discovery.py q
 #
 # Three jobs:
-#   It responds to requests from other hosts looking for the 'kmet1' service;
-#   It listens for service announcements from other hosts and maintains a list of hosts wiath that service;
+#   It responds to requests from other hosts looking for services;
+#   It listens for service announcements from other hosts and maintains a list of hosts with that service;
 #   It serves that list of hosts offering the 'kmet1' service for processes on this machine (though there's
 #       nothing stopping the other hosts from querying for that list).
 #
 # ... wouldn't need this if DNS works...
 #
 # Run this script directly and it would handle the query-respond as a daemon;
-# Run this script with the argument 'q' and it would return the list of known hosts offering
-# the 'kmet1' service.
+# Run this script with a service name as argument and it would return the list of hosts
+# offering that service.
 #
 # The Protocol (on UDP PORT):
 # To find other hosts, broadcast the string (using topic='kmet1' as example)
@@ -36,8 +36,9 @@
 # interested in?
 #
 # In principle, this host does not need to maintain an up-to-date list of known hosts at all
-# time - you can initiate a query broadcast when such list is needed. Small delay, small
-# price to pay.
+# time - you can initiate a query broadcast when such list is needed. Not storing a list
+# also means nothing would go stale, so there's no timestamps to keep track of. Small delay,
+# small price to pay.
 #
 # The host would still need a daemon to respond to query broadcasts from other hosts.
 #
@@ -46,7 +47,7 @@
 # hlio@hawaii.edu
 # Ocean Technology Group
 # SOEST, University of Hawaii
-# All Rights Reserved, 2016
+# All Rights Reserved, 2017
 import sys,json,subprocess,traceback,socket,logging,time,uuid
 from twisted.internet.protocol import DatagramProtocol
 
@@ -55,7 +56,6 @@ PORT = 9005
 
 
 services_offered = [('kmet1',9002)]
-best_before = 5*60      # second. a service listing is considered stale if it was last updated over this many seconds ago
 
 
 def getIP():
@@ -79,7 +79,7 @@ class ServiceDiscovery(DatagramProtocol):
 
             if 'service_query' in d:
                 if d['service_query'] not in [tmp[0] for tmp in services_offered]:
-                    logging.debug('Not a service I offer')
+                    logging.debug('Not a service I offer: {}'.format(d['service_query']))
                     return
 
                 logging.debug('Responding to query from ' + host)
@@ -102,7 +102,7 @@ class ServiceDiscovery(DatagramProtocol):
                 self._publishers[d['ip']] = (time.time(),d['service_response'])
 
             if 'get_service_listing' in d:
-                self.service_query()
+                self.service_query(d['get_service_listing'])
                 # query service providers on demand
                 # problem is, the service_response won't get processed until this returns
                 # so don't sleep, use callLater()
@@ -111,18 +111,18 @@ class ServiceDiscovery(DatagramProtocol):
                 line = json.dumps({'service_query':d['get_service_listing']},separators=(',',':'))
                 self.transport.write(json.dumps(line,separators=(',',':')),(host,port))
 
-                def tmp():
+                def callback():
                     tmp = {'service_listing':self.get_publisher_list()}
                     if 'id' in d:
                         tmp['id'] = d['id']
                     
                     self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
-                reactor.callLater(d.get('max_response_time',1)+1,tmp)
+                reactor.callLater(d.get('max_response_time',1)+1,callback)
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
 
-    def service_query(self,topic='kmet1'):
+    def service_query(self,topic):
         """Query everyone for the given topic via UDP broadcast.
 Whoever publishing this topic would respond with its own IP."""
         logging.debug('Broadcasting query...')
@@ -155,7 +155,7 @@ def get_publisher_list(service,max_response_time=2):
     sock.sendto(tmp,('127.0.0.1',PORT))
     logging.debug('waiting for response...')
     try:
-        for i in range(10):
+        for i in range(5):
             try:
                 d,h = sock.recvfrom(1024)
             except socket.timeout:
@@ -184,6 +184,6 @@ if '__main__' == __name__:
         p = ServiceDiscovery()
         reactor.listenUDP(PORT,p)
         reactor.run()
-    elif sys.argv[1] == 'q':
-        for r in get_publisher_list('kmet1',max_response_time=1):
-            print r
+    else:
+        for r in get_publisher_list(sys.argv[1],max_response_time=1):
+            print(r)
