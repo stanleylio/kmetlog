@@ -81,7 +81,7 @@ class ServiceDiscovery(DatagramProtocol):
                 if d['service_query'] not in [tmp[0] for tmp in services_offered]:
                     logging.debug('Not a service I offer')
                     return
-                
+
                 logging.debug('Responding to query from ' + host)
                 ip = getIP()
                 d = {'hostname':self._hostname,'ip':ip,'service_response':services_offered}
@@ -102,10 +102,12 @@ class ServiceDiscovery(DatagramProtocol):
                 self._publishers[d['ip']] = (time.time(),d['service_response'])
 
             if 'get_service_listing' in d:
-                self.service_query()    # query service providers only on demand
+                self.service_query()
+                # query service providers on demand
                 # problem is, the service_response won't get processed until this returns
                 # so don't sleep, use callLater()
 
+                self._publishers = {}
                 line = json.dumps({'service_query':d['get_service_listing']},separators=(',',':'))
                 self.transport.write(json.dumps(line,separators=(',',':')),(host,port))
 
@@ -113,8 +115,9 @@ class ServiceDiscovery(DatagramProtocol):
                     tmp = {'service_listing':self.get_publisher_list()}
                     if 'id' in d:
                         tmp['id'] = d['id']
+                    
                     self.transport.write(json.dumps(tmp,separators=(',',':')),(host,port))
-                reactor.callLater(d.get('max_response_time',1),tmp)
+                reactor.callLater(d.get('max_response_time',1)+1,tmp)
         except:
             logging.debug(traceback.format_exc())
             logging.debug(data)
@@ -123,14 +126,16 @@ class ServiceDiscovery(DatagramProtocol):
         """Query everyone for the given topic via UDP broadcast.
 Whoever publishing this topic would respond with its own IP."""
         logging.debug('Broadcasting query...')
+        #tag = uuid.uuid4().hex
+        #self._ongoing_queries.append(tag)
         line = json.dumps({'service_query':topic},separators=(',',':'))
         self.transport.write(line,('<broadcast>',PORT))
 
     def get_publisher_list(self):
-        # remove stale entries
+        '''# remove stale entries
         for ip in self._publishers:
             if time.time() - self._publishers[ip][0] > best_before:
-                 del self._publishers[ip]
+                 del self._publishers[ip]'''
         
         # create a list
         pl = []
@@ -151,14 +156,18 @@ def get_publisher_list(service,max_response_time=2):
     logging.debug('waiting for response...')
     try:
         for i in range(10):
-            d,h = sock.recvfrom(1024)
+            try:
+                d,h = sock.recvfrom(1024)
+            except socket.timeout:
+                pass
             logging.debug(d + ' from ' + repr(h))
             tmp = json.loads(d)
             if 'service_listing' in tmp and tmp.get('id',None) == tag:
                 return tmp['service_listing']
-    except socket.timeout:
-        logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
         return []
+    #except socket.timeout:
+    #    logging.error('Daemon not running. Run "python service_discovery.py" (optionally in the background) first.')
+    #    return []
     except:
         logging.error(traceback.format_exc())
         return []
@@ -174,8 +183,7 @@ if '__main__' == __name__:
     if len(sys.argv) == 1:
         p = ServiceDiscovery()
         reactor.listenUDP(PORT,p)
-        #p.service_query()
         reactor.run()
     elif sys.argv[1] == 'q':
-        for r in get_publisher_list('kmet1',max_response_time=2):
+        for r in get_publisher_list('kmet1',max_response_time=1):
             print r
