@@ -7,7 +7,7 @@
 #
 # Three jobs:
 #   It responds to requests from other hosts looking for the 'kmet1' service;
-#   It listens for service announcements from other hosts and maintains a list of hosts wiath that service;
+#   It listens for service announcements from other hosts and maintains a list of hosts offering that service;
 #   It serves that list of hosts offering the 'kmet1' service for processes on this machine (though there's
 #       nothing stopping the other hosts from querying for that list).
 #
