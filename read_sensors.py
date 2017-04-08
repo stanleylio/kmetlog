@@ -129,7 +129,7 @@ def taskDAQ():
 
         send({'tag':'RMYRTD',
               'ts':ts,
-              'RMYRTD_T_C':rhv[config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50})  # [0,1] V maps to [-50,50] DegC
+              'RMYRTD_T_C':round(rhv[config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50,3)})  # [0,1] V maps to [-50,50] DegC
 
         send({'tag':'BucketRain',
               'ts':ts,
