@@ -46,7 +46,9 @@ poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
 def init_storage():
-    return storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
+    from cred import cred
+    #return storage(user='root',passwd=open(expanduser('~/mysql_cred')).read().strip(),dbname='kmetlog')
+    return storage(user='root',passwd=cred['mysql'],dbname='kmetlog')
 store = init_storage()
 
 def taskSampler():
@@ -55,21 +57,19 @@ def taskSampler():
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
             print('= = = = = = = = = =')
-            #m = zsocket.recv()
-            m = zsocket.recv_string()
+            m = zsocket.recv()
+            #m = zsocket.recv_string()
             logger.debug(m)
-            
 # - - - - -
 # slow machine?
 # - - - - -
 #            if random.random() >= 0.1:
 #                return
 # - - - - -
-            
             tmp = m.split(',',1)  # ignore the "kmet1," part
             d = json.loads(tmp[1])
             table = d['tag']
-            tmp = {k:d[k] for k in set(store.get_list_of_columns(table))}
+            tmp = {k:d[k] for k in store.get_list_of_columns(table)}
             store.insert(table,tmp)
             pretty_print(tmp)
     except MySQLdb.OperationalError,e:
