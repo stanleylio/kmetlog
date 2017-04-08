@@ -33,11 +33,17 @@ topic = u'kmet1'
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
 
-
+# Still not foolproof. Imagine power to both publisher and subscriber got cycled.
+# publisher may come up after subscriber. This script should not proceed if
+# no publisher is found. The static config is still needed.
+# Also, how often should subscribers initiate a new search?
 #a = set(config.subscribeto)         # feeds found in config
 a = set(getattr(config,'subscribeto',[]))
 b = set(get_publisher_list(topic))  # feeds found in the network
 feeds = a.union(b)
+if len(feeds) <= 0:
+    logger.critical('No ZMQ feed defined/found.')
+    exit()
 for feed in feeds:
     feed = 'tcp://' + feed
     logger.info('subscribing to ' + feed)
