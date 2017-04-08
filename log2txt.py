@@ -1,8 +1,8 @@
 # store stuff from zmq to text file, with timestamps
 # 
-# University of Hawaii
 # Stanley H.I. Lio
 # hlio@hawaii.edu
+# University of Hawaii
 # All Rights Reserved, 2017
 import zmq,logging,time,sys,traceback
 sys.path.append('..')
@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.handlers.SysLogHandler(address='/dev/log')
 logging.Formatter.converter = time.gmtime
-formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+#formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+formatter = logging.Formatter('%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -64,5 +65,4 @@ while True:
 
 f.close()
 zsocket.close()
-
 logger.info('Logger terminated')

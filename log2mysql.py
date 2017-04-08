@@ -41,9 +41,7 @@ zsocket = context.socket(zmq.SUB)
 a = set(getattr(config,'subscribeto',[]))
 b = set(get_publisher_list(topic))  # feeds found in the network
 feeds = a.union(b)
-if len(feeds) <= 0:
-    logger.critical('No ZMQ feed defined/found.')
-    exit()
+assert len(feeds) > 0,'No ZMQ feed defined/found.'
 for feed in feeds:
     feed = 'tcp://' + feed
     logger.info('subscribing to ' + feed)
