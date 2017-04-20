@@ -90,7 +90,7 @@ def send(d):
         if 'tag' in d:
             s = json.dumps(d,separators=(',',':'))
             s = 'kmet1,{msg}'.format(msg=s)
-            logger.info(s)
+            logger.debug(s)
         else:
             s = ''
         send.last_transmitted = datetime.utcnow()
