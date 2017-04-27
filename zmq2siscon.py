@@ -8,7 +8,7 @@
 # Stanley H.I. Lio
 # hlio@hawaii.edu
 # All Rights Reserved. 2016
-import zmq,sys,json,logging,traceback,math,time,socket
+import zmq,sys,json,logging,traceback,time,socket
 import logging.handlers
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
@@ -18,20 +18,16 @@ UDP_PORT = 5642
 PERIOD = 1     # seconds
 
 
-# Logging
-'''DEBUG,INFO,WARNING,ERROR,CRITICAL'''
+#'DEBUG,INFO,WARNING,ERROR,CRITICAL'
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # "global"?
-#fh = logging.handlers.RotatingFileHandler('/var/kmetlog/log/zmq2udp.log',maxBytes=1e7,backupCount=5)
-#fh.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
+handler = logging.handlers.SysLogHandler(address='/dev/log')
 logging.Formatter.converter = time.gmtime
-formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(message)s')
-#fh.setFormatter(formatter)
-ch.setFormatter(formatter)
-#logger.addHandler(fh)
-logger.addHandler(ch)
+formatter = logging.Formatter('%(asctime)s,%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+#formatter = logging.Formatter('%(name)s,%(levelname)s,%(module)s.%(funcName)s,%(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 topic = u'kmet1'
@@ -42,6 +38,7 @@ zsocket.setsockopt_string(zmq.SUBSCRIBE,topic)
 poller = zmq.Poller()
 poller.register(zsocket,zmq.POLLIN)
 
+
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 sock.bind(('', 0))
 sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
@@ -50,10 +47,9 @@ sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 def send(s):
     try:
         #logger.debug(s)
-        #sock.sendto(s,('<broadcast>',UDP_PORT))
-        # the siscon code doesn't handle UDP broadcast messages correctly, so UDP <broadcast>
-        # cannot be used.
+#        sock.sendto(s,('<broadcast>',UDP_PORT))    # doesn't work on the KM
         sock.sendto(s,('192.168.1.255',UDP_PORT))
+#        sock.sendto(s,('166.122.96.152',UDP_PORT))
     except:
         logger.error(traceback.format_exc())
 
@@ -69,12 +65,8 @@ def taskSampler():
             m = zsocket.recv_string()
             #logger.debug(m)
             m = m.split(',',1)
-
             d = json.loads(m[1])
-            # clocks on kmet-bbb and chartroom computer are not in sync, so d['ts'] and
-            # time.time() on chartroom computer might be further apart than they actually
-            # are.
-            # this saves the chartroom computer time into the data
+            # Clocks on kmet-bbb and THIS computer are not in sync. Saving time on THIS machine.
             assert '_ReceptionTime' not in d
             d['_ReceptionTime'] = time.time()
             D[d['tag']] = d
@@ -86,15 +78,13 @@ def taskSampler():
 
 def taskBroadcast():
     global D
-    #print '- - - - -'
-    #print sorted(D.keys())
 
-    # emulating the Campbell Logger
-    # format deduced from the siscon source code
-    # total of 17 fields
-    # ... yes it is space-delimited... and yes, one of the data field could also be spaces...
+    # Emulate the Campbell Logger
+    # Format deduced from the siscon source code
+    # A total of 17 fields, space-delimited (what?)
+    # ... and yes, one of the data field could also be spaces.
     # and don't ask me why a \0 is needed at the end. "because siscon wants it that way."
-    # "What's the 1: for at the beginning?" "because siscon wants it that way." even though it is trivial to change it.
+    # "What's the 1: for at the beginning?" "because siscon wants it that way."
     # "What's that \x00 at the end" BECAUSE SISCON WANTS IT THAT WAY. NO MORE QUESTIONS.
     s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
         0,                                                      # Panel temperature (obsolete; kept for compatibility)
@@ -116,15 +106,12 @@ def taskBroadcast():
         D.get('OpticalRain',{}).get('OpticalRain_accumulation_mm',0),       # Precipitation accumulation (optical)
         )
     send(s)
-    print s.strip()
+    print(s.strip())
     for k in D.keys():
         if time.time() - D[k]['_ReceptionTime'] > 5*PERIOD:
             del D[k]
-    #D = {}
 
 LoopingCall(taskSampler).start(0.1)
 LoopingCall(taskBroadcast).start(PERIOD,now=False)
-
 reactor.run()
-
 zsocket.close()
