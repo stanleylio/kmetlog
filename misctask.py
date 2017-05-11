@@ -1,9 +1,9 @@
 from __future__ import division
 import sys,logging,traceback,time
 #from drivers.Adafruit_BME280 import *
-from drivers.watchdog import reset_auto
-from config.config_support import import_node_config
-from adam4080 import ADAM4080
+from node.drivers.watchdog import reset_auto
+from node.config.config_support import import_node_config
+from node.drivers.adam4080 import ADAM4080
 
 
 config = import_node_config()

@@ -18,17 +18,14 @@ from __future__ import division,print_function
 import sys,zmq,logging,json,time,traceback,serial
 import logging.handlers
 from os.path import expanduser
-sys.path.append(expanduser('~/node'))
+sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from datetime import datetime,timedelta
-from adam4017 import ADAM4017
-from adam4018 import ADAM4018
-from misctask import initdaqf
-#import service_discovery
-from socket import gethostname
-from misctask import taskWDT,taskMisc
-from config.config_support import import_node_config
+from node.drivers.adam4017 import ADAM4017
+from node.drivers.adam4018 import ADAM4018
+from misctask import initdaqf,taskWDT,taskMisc
+from node.config.config_support import import_node_config
 
 
 config = import_node_config()
