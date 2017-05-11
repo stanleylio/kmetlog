@@ -250,8 +250,8 @@ LoopingCall(taskOpticalRain).start(1)
 LoopingCall(taskHeartbeat).start(10,now=False)
 
 
-logger.debug('starting reactor()...')
+logger.info(__file__ + ' is ready')
 reactor.run()
 del daqhv
 del daqlv
-logger.info('Terminated')
+logger.info(__file__ + ' terminated')
