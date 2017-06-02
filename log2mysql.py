@@ -79,6 +79,7 @@ while True:
         time.sleep(2)
     except KeyboardInterrupt:
         logging.info('user interrupted')
+        break
     except:
         logging.exception(traceback.format_exc())
     
