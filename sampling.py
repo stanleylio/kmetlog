@@ -6,70 +6,57 @@
 # University of Hawaii
 # All Rights Reserved. 2017
 from __future__ import division,print_function
-import sys,logging,json,time,traceback,pika,socket
+import sys,logging,json,time,traceback,socket,zmq
 from os.path import expanduser,basename
 sys.path.append(expanduser('~'))
-from datetime import datetime,timedelta
-from pika import exceptions
-from pika.adapters import twisted_connection
 from twisted.internet.task import LoopingCall
-from twisted.internet import defer,reactor,protocol,task
+from twisted.internet import reactor
+from datetime import datetime,timedelta
 from node.drivers.watchdog import reset_auto
 from node.config.config_support import import_node_config
-from cred import cred
+from node.zmqloop import zmqloop
 
 
 logging.basicConfig(level=logging.INFO)
 
 
-exchange_name = 'uhcm'
 STALE = 5   # seconds
-queue_name = basename(__file__)
-config = import_node_config()
-credentials = pika.PlainCredentials('nuc',cred['rabbitmq'])
-
 UDP_PORT = 5642
+
+config = import_node_config()
+
 sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 sock.bind(('', 0))
 sock.setsockopt(socket.SOL_SOCKET,socket.SO_BROADCAST,1)
 
+context = zmq.Context()
+zsocket = context.socket(zmq.SUB)
+for feed in getattr(config,'subscribeto',[]):
+    feed = 'tcp://' + feed
+    logging.info('subscribing to ' + feed)
+    zsocket.connect(feed)
+zsocket.setsockopt_string(zmq.SUBSCRIBE,u'')
+poller = zmq.Poller()
+poller.register(zsocket,zmq.POLLIN)
+
+
 D = {}
-channel = None
 
-# what kind of sorcery is this?
-# also it doesn't show any exception (it just hangs there)
-@defer.inlineCallbacks
-def run(connection):
-    global channel
-    channel = yield connection.channel()
-    exchange = yield channel.exchange_declare(exchange=exchange_name,type='topic',durable=True)
-    queue = yield channel.queue_declare(queue=queue_name,
-                                        durable=False,
-                                        exclusive=True,
-                                        auto_delete=True,
-                                        arguments={'x-message-ttl':10*1000})
-    yield channel.queue_bind(exchange=exchange_name,
-                             queue=queue_name,
-                             routing_key='*.m')
-    yield channel.basic_qos(prefetch_count=1)
-    queue_object,consumer_tag = yield channel.basic_consume(queue=queue_name,no_ack=True)
+def taskZMQ():
+    try:
+        socks = dict(poller.poll(1000))
+        if zsocket in socks and zmq.POLLIN == socks[zsocket]:
+            m = zsocket.recv()
+            logging.debug(m)
+            d = json.loads(m)
+            if 'tag' not in d:
+                return
 
-    LoopingCall(read,queue_object).start(0.01)
-
-
-# ... witchcraft!
-@defer.inlineCallbacks
-def read(queue_object):
-    ch,method,properties,body = yield queue_object.get()
-    if body:
-        logging.debug(body)
-        d = json.loads(body)
-        if 'tag' not in d:
-            return
-
-        global D
-        D[d['tag']] = d
-    #yield ch.basic_ack(delivery_tag=method.delivery_tag)
+            global D
+            D[d['tag']] = d
+    except:
+        logging.exception(traceback.format_exc())
+        logging.exception(m)
 
 
 def taskSample():
@@ -110,15 +97,6 @@ def taskSample():
         r['ts'] = time.time()
 
         print(r)
-        m = json.dumps(r,separators=(',',':'))
-        global channel
-        channel.basic_publish(exchange=exchange_name,
-                              routing_key='samples',
-                              body=m,
-                              properties=pika.BasicProperties(delivery_mode=1,  # non-persistent
-                                                              content_type='text/plain',
-                                                              expiration=str(60*1000),
-                                                              timestamp=time.time()))
 
     # - - - - -
     s = '1: {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n\x00'.format(
@@ -140,7 +118,7 @@ def taskSample():
         r.get('OpticalRain_instantaneous_mmphr',0),             # Precipitation (optical, mm)
         r.get('OpticalRain_accumulation_mm',0),                 # Precipitation accumulation (optical)
         )
-    #logger.debug(s)
+    #logging.debug(s)
     #sock.sendto(s,('<broadcast>',UDP_PORT))    # doesn't work on the KM
     for p in ['192.168.1.255','166.122.96.152']:
         try:
@@ -167,12 +145,7 @@ def taskWDT():
         traceback.print_exc()
 
 
-parameters = pika.ConnectionParameters('localhost',5672,'/',credentials)
-cc = protocol.ClientCreator(reactor,twisted_connection.TwistedProtocolConnection,parameters)
-d = cc.connectTCP('localhost',5672)
-d.addCallback(lambda protocol: protocol.ready)
-d.addCallback(run)
-
+LoopingCall(taskZMQ).start(0.1,now=True)
 LoopingCall(taskWDT).start(59,now=False)
 LoopingCall(taskSample).start(1,now=False)
 LoopingCall(taskTrim).start(10,now=False)

@@ -1,22 +1,34 @@
-import sys,logging,time,traceback,pika,socket,json,argparse
+import sys,logging,time,traceback,json,argparse,zmq
 from os.path import expanduser
 sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from node.config.config_support import import_node_config
-from cred import cred
 
 
-exchange = 'uhcm'
+logging.basicConfig(level=logging.DEBUG)
+
+
 config = import_node_config()
-nodeid = socket.gethostname()
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('daq',metavar='daq',type=str,
                     help='One of {hv,lv}')
 args = parser.parse_args()
-
 assert args.daq in ['hv','lv','fc']
+
+
+context = zmq.Context()
+socket = context.socket(zmq.PUB)
+if 'hv' == args.daq:
+    socket.bind('tcp://*:9011')
+elif 'lv' == args.daq:
+    socket.bind('tcp://*:9012')
+elif 'fc' == args.daq:
+    socket.bind('tcp://*:9013')
+else:
+    # not possible
+    exit()
 
 
 def daq_init():
@@ -61,16 +73,8 @@ logging.info('Checking DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_HV_PORT[1
 #exit
 
 
-def rabbit_init():
-    credentials = pika.PlainCredentials('nuc',cred['rabbitmq'])
-    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost',5672,'/',credentials))
-    channel = connection.channel()
-    channel.exchange_declare(exchange=exchange,type='topic',durable=True)
-    return connection,channel
-
 def task():
-    global daq,connection,channel
-
+    global daq
     try:
         if daq is None:
             daq = daq_init()
@@ -87,21 +91,11 @@ def task():
         m = json.dumps(d,separators=(',',':'))
 
         print(m)
-        channel.basic_publish(exchange=exchange,
-                              routing_key=args.daq + '.m',
-                              body=m,
-                              properties=pika.BasicProperties(delivery_mode=1,  # non-persistent
-                                                              content_type='text/plain',
-                                                              expiration=str(5*1000),
-                                                              timestamp=time.time()))
-    except pika.exceptions.ConnectionClosed:
-        connection,channel = None,None
-        logging.error('connection closed')  # connection to the local exchange closed
+        socket.send_string(m)
     except:
         traceback.print_exc()
 
 
-connection,channel = rabbit_init()
 daq = daq_init()
 LoopingCall(task).start(1)
 
