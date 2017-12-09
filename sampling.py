@@ -11,16 +11,18 @@ from os.path import expanduser,basename
 sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
+from twisted.python import log
 from datetime import datetime,timedelta
 from node.drivers.watchdog import reset_auto
 from node.config.config_support import import_node_config
-from node.zmqloop import zmqloop
+#from node.zmqloop import zmqloop
 
 
 logging.basicConfig(level=logging.INFO)
+log.startLogging(sys.stdout)
 
 
-STALE = 5   # seconds
+STALE_TIMEOUT = 5   # seconds
 UDP_PORT = 5642
 
 config = import_node_config()
@@ -54,9 +56,11 @@ def taskZMQ():
 
             global D
             D[d['tag']] = d
+    except KeyboardInterrupt:
+        reactor.stop()
     except:
         logging.exception(traceback.format_exc())
-        logging.exception(m)
+        logging.error(m)
 
 
 def taskSample():
@@ -120,17 +124,20 @@ def taskSample():
         )
     #logging.debug(s)
     #sock.sendto(s,('<broadcast>',UDP_PORT))    # doesn't work on the KM
-    for p in ['192.168.1.255','166.122.96.152']:
+    for p in ['192.168.1.255']:
         try:
-            sock.sendto(s,(p,UDP_PORT))
+            sock.sendto(s.encode(),(p,UDP_PORT))
         except socket.error:
             pass
-    
+        except KeyboardInterrupt:
+            reactor.stop()
+        except:
+            traceback.print_exc()
 
 def taskTrim():
     global D
     for k in list(D.keys()):
-        if 'ts' in D[k] and time.time() - D[k]['ts'] > STALE:
+        if 'ts' in D[k] and time.time() - D[k]['ts'] > STALE_TIMEOUT:
             del D[k]
 
 
@@ -141,14 +148,16 @@ def taskWDT():
             logging.info('WDT good')
         else:
             logging.warning('WDT not found')
+    except KeyboardInterrupt:
+        reactor.stop()
     except:
         traceback.print_exc()
 
 
 LoopingCall(taskZMQ).start(0.1,now=True)
-LoopingCall(taskWDT).start(59,now=False)
+LoopingCall(taskWDT).start(59,now=True)
 LoopingCall(taskSample).start(1,now=False)
-LoopingCall(taskTrim).start(10,now=False)
+LoopingCall(taskTrim).start(STALE_TIMEOUT,now=False)
 
 logging.info(__file__ + ' is ready')
 reactor.run()
