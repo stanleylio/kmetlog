@@ -1,4 +1,4 @@
-import sys,logging,time,traceback,json,argparse,zmq
+import sys, logging, time, traceback, json, argparse, zmq
 from os.path import expanduser
 sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
@@ -27,8 +27,8 @@ elif 'lv' == args.daq:
 elif 'fc' == args.daq:
     socket.bind('tcp://*:9013')
 else:
-    # not possible
-    exit()
+    # invalid
+    sys.exit()
 
 
 def daq_init():
