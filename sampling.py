@@ -45,7 +45,6 @@ poller.register(zsocket,zmq.POLLIN)
 D = {}
 
 def taskZMQ():
-    m = ''
     try:
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
@@ -57,11 +56,10 @@ def taskZMQ():
 
             global D
             D[d['tag']] = d
-    except (KeyboardInterrupt, zmq.errors.ZMQError):
+    except (KeyboardInterrupt, zmq.error.ZMQError):
         reactor.stop()
     except:
-        logging.exception(traceback.format_exc())
-        logging.error(m)
+        logging.exception(m)
 
 
 def taskSample():
@@ -133,7 +131,7 @@ def taskSample():
         except KeyboardInterrupt:
             reactor.stop()
         except:
-            traceback.print_exc()
+            logging.exception(s)
 
 def taskTrim():
     """Trim off stale entries in the cache"""
@@ -152,7 +150,7 @@ def taskWDT():
     except KeyboardInterrupt:
         reactor.stop()
     except:
-        traceback.print_exc()
+        logging.exception('WDT error')
 
 
 LoopingCall(taskZMQ).start(0.1,now=True)
