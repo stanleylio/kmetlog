@@ -122,9 +122,9 @@ def taskSample():
         r.get('OpticalRain_instantaneous_mmphr',0),             # Precipitation (optical, mm)
         r.get('OpticalRain_accumulation_mm',0),                 # Precipitation accumulation (optical)
         )
-    #logging.debug(s)
+    logging.debug(s)
     #sock.sendto(s,('<broadcast>',UDP_PORT))    # doesn't work on the KM
-    for p in ['192.168.1.255']:
+    for p in ['192.168.1.255','192.168.2.255']:
         try:
             sock.sendto(s.encode(),(p,UDP_PORT))
         except socket.error:
@@ -135,11 +135,11 @@ def taskSample():
             traceback.print_exc()
 
 def taskTrim():
+    """Trim off stale entries in the cache"""
     global D
     for k in list(D.keys()):
         if 'ts' in D[k] and time.time() - D[k]['ts'] > STALE_TIMEOUT:
             del D[k]
-
 
 def taskWDT():
     try:
