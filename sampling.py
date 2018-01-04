@@ -45,6 +45,7 @@ poller.register(zsocket,zmq.POLLIN)
 D = {}
 
 def taskZMQ():
+    m = ''
     try:
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
@@ -56,7 +57,7 @@ def taskZMQ():
 
             global D
             D[d['tag']] = d
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, zmq.errors.ZMQError):
         reactor.stop()
     except:
         logging.exception(traceback.format_exc())
