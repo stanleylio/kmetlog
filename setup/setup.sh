@@ -6,13 +6,13 @@
 sudo nano /etc/hostname
 sudo nano /etc/hosts
 
-sudo adduser nuc
-sudo usermod -aG sudo nuc
-sudo usermod -aG dialout nuc
-sudo usermod -aG i2c nuc
-sudo bash -c " echo \"nuc ALL=(ALL) NOPASSWD:ALL\" > /etc/sudoers.d/nuc"
+sudo adduser otg
+sudo usermod -aG sudo otg
+sudo usermod -aG dialout otg
+sudo usermod -aG i2c otg
+sudo bash -c " echo \"otg ALL=(ALL) NOPASSWD:ALL\" > /etc/sudoers.d/otg"
 
-# sudo reboot, login as nuc, then
+# sudo reboot, login as otg, then
 sudo userdel -r -f debian
 sudo userdel -r -f pi
 
@@ -59,9 +59,10 @@ git config --global user.email stanleylio@gmail.com
 sudo apt install supervisor -y
 sudo systemctl enable supervisor
 sudo systemctl start supervisor
-sudo chown nuc:nuc /etc/supervisor/conf.d
-sudo apt install build-essential python-dev python-setuptools python-pip python-twisted python-zmq -y
+sudo chown otg:otg /etc/supervisor/conf.d
+sudo apt install build-essential python-pip python-twisted python-zmq python3-pip python3-zmq -y
 sudo pip install pyserial requests pycrypto
+sudo pip3 install twisted
 
 
 
@@ -70,7 +71,7 @@ sudo apt install sqlite3 -y
 
 
 sudo mkdir /var/uhcm
-sudo chown nuc:nuc /var/uhcm
+sudo chown otg:otg /var/uhcm
 mkdir /var/uhcm/log
 
 
