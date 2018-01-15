@@ -48,7 +48,7 @@ def taskZMQ():
     try:
         socks = dict(poller.poll(1000))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
-            m = zsocket.recv()
+            m = zsocket.recv().decode()
             logging.debug(m)
             d = json.loads(m)
             if 'tag' not in d:
@@ -123,7 +123,8 @@ def taskSample():
         )
     logging.debug(s)
     #sock.sendto(s,('<broadcast>',UDP_PORT))    # doesn't work on the KM
-    for p in ['192.168.1.255','192.168.2.255']:
+    #for p in ['192.168.1.255','192.168.2.255']:
+    for p in ['192.168.1.255']:
         try:
             sock.sendto(s.encode(),(p,UDP_PORT))
         except socket.error:
