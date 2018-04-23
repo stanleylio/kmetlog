@@ -4,8 +4,7 @@
 # hlio@hawaii.edu
 # Ocean Technology Group
 # University of Hawaii
-# All Rights Reserved. 2017
-#from __future__ import division, print_function
+# All Rights Reserved. 2018
 import sys, logging, json, time, traceback, socket, zmq
 from os.path import expanduser, basename
 sys.path.append(expanduser('~'))

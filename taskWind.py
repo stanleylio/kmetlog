@@ -1,3 +1,10 @@
+# Stuff for getting readings from the ultrasonic anemometer
+#
+# Stanley H.I. Lio
+# hlio@hawaii.edu
+# Ocean Technology Group
+# University of Hawaii
+# All Rights Reserved. 2018
 import sys,logging,time,traceback,json,zmq
 from os.path import expanduser
 sys.path.append(expanduser('~'))

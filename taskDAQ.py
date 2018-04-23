@@ -1,3 +1,10 @@
+# Stuff for getting measurements from the DAQ
+#
+# Stanley H.I. Lio
+# hlio@hawaii.edu
+# Ocean Technology Group
+# University of Hawaii
+# All Rights Reserved. 2018
 import sys, logging, time, traceback, json, argparse, zmq
 from os.path import expanduser
 sys.path.append(expanduser('~'))
@@ -68,7 +75,7 @@ def daq_init():
         return daq
 
 
-logging.info('Checking DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_HV_PORT[1],config.DAQ_HV_PORT[0],config.DAQ_HV_PORT[2]))
+logging.info('Checking DAQ: ID{:02d} on {} at {}...'.format(config.DAQ_HV_PORT[1], config.DAQ_HV_PORT[0], config.DAQ_HV_PORT[2]))
 #logging.info('PASS' if daq_init() is not None else 'FAIL')
 #exit
 
@@ -88,7 +95,7 @@ def task():
         d = {'tag':args.daq,
              'ts':time.time(),
              'r':r}
-        m = json.dumps(d,separators=(',',':'))
+        m = json.dumps(d, separators=(',', ':'))
 
         print(m)
         socket.send_string(m)
