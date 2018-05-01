@@ -5,7 +5,7 @@
 # Ocean Technology Group
 # University of Hawaii
 # All Rights Reserved. 2018
-import sys, logging, json, time, traceback, socket, zmq
+import sys, logging, json, time, socket, zmq
 from os.path import expanduser, basename
 sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
@@ -14,7 +14,6 @@ from twisted.python import log
 from datetime import datetime,timedelta
 from node.drivers.watchdog import reset_auto
 from node.config.config_support import import_node_config
-#from node.zmqloop import zmqloop
 
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +22,7 @@ log.startLogging(sys.stdout)
 
 STALE_TIMEOUT = 5   # seconds
 UDP_PORT = 5642
+BROADCAST_ADDRESSES = ['192.168.0.255', '192.168.1.255']
 
 config = import_node_config()
 
@@ -32,7 +32,7 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 context = zmq.Context()
 zsocket = context.socket(zmq.SUB)
-for feed in getattr(config,'subscribeto', []):
+for feed in getattr(config, 'subscribeto', []):
     feed = 'tcp://' + feed
     logging.info('subscribing to ' + feed)
     zsocket.connect(feed)
@@ -70,7 +70,7 @@ def taskSample():
     if 'hv' in D:
         r['PAR_V'] = D['hv']['r'][config.DAQ_CH_MAP['PAR_V']]
         r['Rotronics_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_T_C']]*100 - 30, 4)   # from Volt to Deg.C
-        r['Rotronics_RH_percent'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_RH_percent']]*100,1)  # %RH
+        r['Rotronics_RH_percent'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_RH_percent']]*100, 1)  # %RH
         r['RMYRTD_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50, 4)     # [0,1] V maps to [-50,50] DegC
         r['BucketRain_accumulation_mm'] = round(20*D['hv']['r'][config.DAQ_CH_MAP['BucketRain_accumulation_mm']], 1)   # map 0-2.5V to 0-50mm
 
@@ -122,8 +122,7 @@ def taskSample():
         )
     logging.debug(s)
     #sock.sendto(s, ('<broadcast>', UDP_PORT))    # doesn't work on the KM
-    #for p in ['192.168.1.255', '192.168.2.255']:
-    for p in ['192.168.1.255']:
+    for p in BROADCAST_ADDRESSES:
         try:
             sock.sendto(s.encode(), (p, UDP_PORT))
         except socket.error:
@@ -134,7 +133,7 @@ def taskSample():
             logging.exception(s)
 
 def taskTrim():
-    """Trim off stale entries in the cache"""
+    """Remove stale entries in the cache"""
     global D
     for k in list(D.keys()):
         if 'ts' in D[k] and time.time() - D[k]['ts'] > STALE_TIMEOUT:
