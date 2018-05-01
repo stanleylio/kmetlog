@@ -11,7 +11,7 @@ sys.path.append(expanduser('~'))
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
 from twisted.python import log
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from node.drivers.watchdog import reset_auto
 from node.config.config_support import import_node_config
 
@@ -22,7 +22,7 @@ log.startLogging(sys.stdout)
 
 STALE_TIMEOUT = 5   # seconds
 UDP_PORT = 5642
-BROADCAST_ADDRESSES = ['192.168.0.255', '192.168.1.255']
+BROADCAST_ADDRESSES = ['192.168.1.255']
 
 config = import_node_config()
 
@@ -45,7 +45,7 @@ D = {}
 
 def taskZMQ():
     try:
-        socks = dict(poller.poll(1000))
+        socks = dict(poller.poll(100))
         if zsocket in socks and zmq.POLLIN == socks[zsocket]:
             m = zsocket.recv().decode()
             logging.debug(m)
@@ -62,38 +62,42 @@ def taskZMQ():
 
 
 def taskSample():
+    """Take a snapshot of the current readings and broadcast via UDP"""
+    
     global D
-#    print(D)
 
     r = {}
-    
-    if 'hv' in D:
-        r['PAR_V'] = D['hv']['r'][config.DAQ_CH_MAP['PAR_V']]
-        r['Rotronics_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_T_C']]*100 - 30, 4)   # from Volt to Deg.C
-        r['Rotronics_RH_percent'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_RH_percent']]*100, 1)  # %RH
-        r['RMYRTD_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50, 4)     # [0,1] V maps to [-50,50] DegC
-        r['BucketRain_accumulation_mm'] = round(20*D['hv']['r'][config.DAQ_CH_MAP['BucketRain_accumulation_mm']], 1)   # map 0-2.5V to 0-50mm
 
-    if 'lv' in D:
-        r['PSP_mV'] = D['lv']['r'][config.DAQ_CH_MAP['PSP_mV']]/1e-3     # Volt to mV
+    try:
+        if 'hv' in D:
+            r['PAR_V'] = D['hv']['r'][config.DAQ_CH_MAP['PAR_V']]
+            r['Rotronics_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_T_C']]*100 - 30, 4)   # from Volt to Deg.C
+            r['Rotronics_RH_percent'] = round(D['hv']['r'][config.DAQ_CH_MAP['Rotronics_RH_percent']]*100, 1)  # %RH
+            r['RMYRTD_T_C'] = round(D['hv']['r'][config.DAQ_CH_MAP['RMYRTD_T_C']]*100 - 50, 4)     # [0,1] V maps to [-50,50] DegC
+            r['BucketRain_accumulation_mm'] = round(20*D['hv']['r'][config.DAQ_CH_MAP['BucketRain_accumulation_mm']], 1)   # map 0-2.5V to 0-50mm
 
-    if 'hv' in D and 'lv' in D:
-        r['PIR_mV'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_mV']]/1e-3     # Volt to mV
-        r['PIR_case_V'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_case_V']]
-        r['PIR_dome_V'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_dome_V']]
+        if 'lv' in D:
+            r['PSP_mV'] = D['lv']['r'][config.DAQ_CH_MAP['PSP_mV']]/1e-3     # Volt to mV
 
-    if 'UltrasonicWind' in D:
-        r['UltrasonicWind_apparent_speed_mps'] = D['UltrasonicWind']['UltrasonicWind_apparent_speed_mps']
-        r['UltrasonicWind_apparent_direction_deg'] = D['UltrasonicWind']['UltrasonicWind_apparent_direction_deg']
+        if 'hv' in D and 'lv' in D:
+            r['PIR_mV'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_mV']]/1e-3     # Volt to mV
+            r['PIR_case_V'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_case_V']]
+            r['PIR_dome_V'] = D['lv']['r'][config.DAQ_CH_MAP['PIR_dome_V']]
 
-    if 'OpticalRain' in D:
-        r['OpticalRain_weather_condition'] = D['OpticalRain']['weather_condition']
-        r['OpticalRain_instantaneous_mmphr'] = D['OpticalRain']['instantaneous_mmphr']
-        r['OpticalRain_accumulation_mm'] = D['OpticalRain']['accumulation_mm']
+        if 'UltrasonicWind' in D:
+            r['UltrasonicWind_apparent_speed_mps'] = D['UltrasonicWind']['UltrasonicWind_apparent_speed_mps']
+            r['UltrasonicWind_apparent_direction_deg'] = D['UltrasonicWind']['UltrasonicWind_apparent_direction_deg']
 
-    if 'fc' in D:
-        r['Rotronics_Fan_rpm'] = D['fc']['r'][config.DAQ_CH_MAP['Rotronics_Fan_rpm']]/2*60
-        r['RMYRTD_Fan_rpm'] = D['fc']['r'][config.DAQ_CH_MAP['RMYRTD_Fan_rpm']]/2*60
+        if 'OpticalRain' in D:
+            r['OpticalRain_weather_condition'] = D['OpticalRain']['weather_condition']
+            r['OpticalRain_instantaneous_mmphr'] = D['OpticalRain']['instantaneous_mmphr']
+            r['OpticalRain_accumulation_mm'] = D['OpticalRain']['accumulation_mm']
+
+        if 'fc' in D:
+            r['Rotronics_Fan_rpm'] = D['fc']['r'][config.DAQ_CH_MAP['Rotronics_Fan_rpm']]/2*60
+            r['RMYRTD_Fan_rpm'] = D['fc']['r'][config.DAQ_CH_MAP['RMYRTD_Fan_rpm']]/2*60
+    except KeyError:
+        logging.error('Wut? Sth is wrong with the taskX.py etc.')
 
     if len(r):
         r['ts'] = time.time()
@@ -126,7 +130,7 @@ def taskSample():
         try:
             sock.sendto(s.encode(), (p, UDP_PORT))
         except socket.error:
-            pass
+            logging.debug('socket.error')
         except KeyboardInterrupt:
             reactor.stop()
         except:
@@ -140,6 +144,7 @@ def taskTrim():
             del D[k]
 
 def taskWDT():
+    """Feed the dog"""
     try:
         good = reset_auto()
         if good:
