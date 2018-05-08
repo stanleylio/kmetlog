@@ -26,23 +26,23 @@ while True:
     try:
         print('\x1b[2J\x1b[;H')
         for table in S:
-            print table
+            print(table)
             cur.execute('SELECT * FROM ' + table + ' ORDER BY ts DESC LIMIT 1;')
             for r in cur.fetchall():
                 ago = time.time() - r[0]
                 if ago < 0:
-                    print '\t', timedelta(seconds=ago), ' ... STRANGE...'
+                    print('\t', timedelta(seconds=ago), ' ... STRANGE...')
                 if ago < 5*60:
-                    print '\t', timedelta(seconds=ago), ' ago' #, ','.join([str(v) for v in r])
+                    print('\t', timedelta(seconds=ago), ' ago') #, ','.join([str(v) for v in r])
                 else:
-                    print '\t', timedelta(seconds=ago), ' ago * * * * * STALE * * * * *'
-                print '\t', r
+                    print('\t', timedelta(seconds=ago), ' ago * * * * * STALE * * * * *')
+                print('\t', r)
 
             # even for SELECT?
             # http://stackoverflow.com/questions/13287749/should-i-commit-after-a-single-select
             conn.commit()
                 
-            print
+            print()
         time.sleep(10)
     except KeyboardInterrupt:
         break

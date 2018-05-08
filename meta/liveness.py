@@ -7,7 +7,7 @@
 # All Rights Reserved, 2016
 import os,time,zmq,json,sys,traceback
 from datetime import datetime
-sys.path.append(r'../node')
+sys.path.append(r'../../node')
 from helper import dt2ts,ts2dt
 from twisted.internet.task import LoopingCall
 from twisted.internet import reactor
